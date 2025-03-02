@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account</title>
+</head>
+<body>
+    <h2>Create Account</h2>
+    
+    {% if error_messages %}
+    <div>
+        <p><strong>Please fix the following errors:</strong></p>
+        <ul>
+            {% for message in error_messages %}
+            <li style="color: red;">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+    <div>
+        <p><strong>Password Requirements:</strong></p>
+        <ul>
+            <li>At least 8 characters long</li>
+            <li>At least one uppercase letter</li>
+            <li>At least one lowercase letter</li>
+            <li>At least one number</li>
+            <li>At least one special character</li>
+        </ul>
+    </div>
+    
+    <form action="/createaccount" method="POST">
+        <label for="user_id">Id: </label>
+        <input type="text" id="user_id" name="user_id" value="{{ user_id }}" required>
+        <br><br><br>
+        <label for="user_password">Password: </label>
+        <input type="password" id="user_password" name="user_password" required>
+        <br><br><br>
+        <button type="submit">Create Account</button>
+    </form>
+</body>
+</html>
