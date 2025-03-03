@@ -115,7 +115,7 @@ def create_account():
 
 @app.route('/dashboard')
 def dashboard():
-    return "Welcome to your dashboard!"
+    return redirect("http://localhost/dashboard.php")
 
 @app.route('/account_created')
 def account_created():
