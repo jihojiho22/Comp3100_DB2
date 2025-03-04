@@ -46,6 +46,7 @@
     // Close connection
     $conn->close();
     ?>
+    <a href="dashboard.php"><button type="button">Back to Dashboard</button></a>
 
 </body>
 </html>
