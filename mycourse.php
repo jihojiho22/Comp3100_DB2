@@ -23,12 +23,13 @@ $user_type = $_SESSION['user_type'];
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Dashboard</title>
+    <title>My course</title>
     <meta charset="UTF-8">
 </head>
 <body>
     <h1>My course</h1>
 
+    <a href="dashboard.php"><button type="button">Back to Dashboard</button></a>
 </body>
 </html>
 

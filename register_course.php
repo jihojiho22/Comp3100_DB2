@@ -2,7 +2,6 @@
 session_start();
 require_once 'functions.php';
 
-// Require login to access this page
 require_login();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['course_id'])) {
@@ -11,47 +10,77 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['course_id'])) {
 }
 
 $course_id = $_POST['course_id'];
-$user_id = $_SESSION['user_id'];
-
-$servername = "localhost"; 
-$username = "root";         
-$password = "";          
+$student_id = $_SESSION['user_id'];
+$servername = "localhost";
+$username = "root";
+$password = "";
 $dbname = "DB2";
 
 $conn = new mysqli($servername, $username, $password, $dbname);
-
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Check if user already registered for this course
-$check_sql = "SELECT * FROM registration WHERE user_id = ? AND course_id = ?";
-$check_stmt = $conn->prepare($check_sql);
-$check_stmt->bind_param("ss", $user_id, $course_id);
-$check_stmt->execute();
-$result = $check_stmt->get_result();
+$section_sql = "SELECT course_id, section_id, semester, year 
+                FROM section 
+                WHERE course_id = ? 
+                ORDER BY year DESC, semester 
+                LIMIT 1";
+$section_stmt = $conn->prepare($section_sql);
+$section_stmt->bind_param("s", $course_id);
+$section_stmt->execute();
+$section_result = $section_stmt->get_result();
 
-if ($result->num_rows > 0) {
-    $_SESSION['register_message'] = "You are already registered for this course.";
-} else {
-    // Register the user for the course
-    $insert_sql = "INSERT INTO registration (user_id, course_id) VALUES (?, ?)";
-    $insert_stmt = $conn->prepare($insert_sql);
-    $insert_stmt->bind_param("ss", $user_id, $course_id);
+if ($section_result->num_rows > 0) {
+    $section_row = $section_result->fetch_assoc();
     
-    if ($insert_stmt->execute()) {
-        $_SESSION['register_message'] = "Successfully registered for course: " . $course_id;
+    // Check if student is already registered for this section
+    $check_sql = "SELECT * FROM take 
+                  WHERE student_id = ? 
+                  AND course_id = ? 
+                  AND section_id = ? 
+                  AND semester = ? 
+                  AND year = ?";
+    $check_stmt = $conn->prepare($check_sql);
+    $check_stmt->bind_param("ssssi", 
+        $student_id, 
+        $section_row['course_id'], 
+        $section_row['section_id'], 
+        $section_row['semester'], 
+        $section_row['year']
+    );
+    $check_stmt->execute();
+    $check_result = $check_stmt->get_result();
+
+    if ($check_result->num_rows > 0) {
+        $_SESSION['register_message'] = "You are already registered for this course.";
     } else {
-        $_SESSION['register_message'] = "Error registering for course: " . $conn->error;
+        // Insert into take table
+        $insert_sql = "INSERT INTO take (student_id, course_id, section_id, semester, year) 
+                       VALUES (?, ?, ?, ?, ?)";
+        $insert_stmt = $conn->prepare($insert_sql);
+        $insert_stmt->bind_param("ssssi", 
+            $student_id, 
+            $section_row['course_id'], 
+            $section_row['section_id'], 
+            $section_row['semester'], 
+            $section_row['year']
+        );
+
+        if ($insert_stmt->execute()) {
+            $_SESSION['register_message'] = "Successfully registered for course: " . $course_id;
+        } else {
+            $_SESSION['register_message'] = "Error registering for course: " . $conn->error;
+        }
+        $insert_stmt->close();
     }
-    
-    $insert_stmt->close();
+    $check_stmt->close();
+} else {
+    $_SESSION['register_message'] = "No available sections for this course.";
 }
 
-$check_stmt->close();
+$section_stmt->close();
 $conn->close();
 
 header('Location: register.php');
 exit;
-
-

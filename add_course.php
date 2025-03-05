@@ -1,49 +1,29 @@
-<?php
-session_start();
-require_once 'functions.php';
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add new Course</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <h1>Add new Course</h1>
+  
+    
 
-// Require login to access this page
-require_login();
+    <h3>Add New Course</h3>
+    <form action="add_course_db.php" method="post">
+        <label for="course_id">Course ID:</label>
+        <input type="text" name="course_id" required><br>
 
-// Only admin or instructor can add courses
-if (!is_admin() && !is_instructor()) {
-    header('Location: dashboard.php');
-    exit;
-}
+        <label for="course_name">Course Name:</label>
+        <input type="text" name="course_name" required><br>
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: dashboard.php');
-    exit;
-}
+        <label for="credits">Credits:</label>
+        <input type="number" name="credits" required><br>
 
-$servername = "localhost"; 
-$username = "root";         
-$password = "";          
-$dbname = "DB2";
+        <button a href="add_course.php">Add Course</button>
+    </form>
+   
 
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-$course_id = $_POST['course_id'];
-$course_name = $_POST['course_name'];
-$credits = $_POST['credits'];
-
-// Use prepared statement to prevent SQL injection
-$sql = "INSERT INTO course (course_id, course_name, credits) VALUES (?, ?, ?)";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("ssi", $course_id, $course_name, $credits);
-
-if ($stmt->execute()) {
-    echo "New course added successfully!";
-    echo "<br><a href='dashboard.php'>Go back to Dashboard</a>"; 
-} else {
-    echo "Error: " . $stmt->error;
-    echo "<br><a href='dashboard.php'>Go back to Dashboard</a>";
-}
-
-$stmt->close();
-$conn->close();
-?>
+    <a href="dashboard.php"><button type="button">Back to Dashboard</button></a>
+</body>
+</html>

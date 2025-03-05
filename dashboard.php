@@ -2,7 +2,6 @@
 session_start();
 require_once 'functions.php';
 
-// Require login to access this page
 require_login();
 
 $servername = "localhost";
@@ -42,19 +41,8 @@ $user_type = $_SESSION['user_type'];
     
     <!-- Add course button (displaying only for admin) -->
     <?php if (is_admin()): ?>
-    <br><br><br>
-    <h3>Add New Course (Admin/Instructor Only)</h3>
-    <form action="add_course.php" method="post">
-        <label for="course_id">Course ID:</label>
-        <input type="text" name="course_id" required><br>
-
-        <label for="course_name">Course Name:</label>
-        <input type="text" name="course_name" required><br>
-
-        <label for="credits">Credits:</label>
-        <input type="number" name="credits" required><br>
-
-        <button type="submit">Add Course</button>
+        <a href="add_course.php"><button type ="button">Add Course</button></a>
+        <a href="assign_course.php"><button type ="button">Assign Course</button></a>
     </form>
     <?php endif; ?>
 

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
 </head>
 <body>
-    <h1>Register courses</h1>
+    <h1>Register course sections</h1>
 
     <?php
 
@@ -22,13 +22,21 @@
         die("Connection failed: " . $conn->connect_error);
     }
 
-    $sql = "SELECT * FROM course";
+    $sql = "SELECT *
+        FROM section s
+        JOIN course c ON s.course_id = c.course_id";
     $result = $conn->query($sql);
 
     if ($result->num_rows > 0) {
         echo "<ul>";
         while ($row = $result->fetch_assoc()) {
-            echo "<li><strong>" . $row["course_id"] . ":</strong> " . $row["course_name"] . " credit: " . $row["credits"] . " ";
+            echo "<li><strong>" . $row["course_id"] .
+             ":</strong> " . $row["section_id"] .
+             ":</strong> " . $row["course_name"] .
+              ":</strong> " . $row["semester"] .
+              ":</strong> " . $row["year"] .
+               " credit: " . $row["credits"] . 
+               " ";
             
             // Register button
             echo '<form action="register_course.php" method="post" style="display:inline;">';
