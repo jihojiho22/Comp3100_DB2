@@ -60,7 +60,7 @@ if (isset($_SESSION['error_message'])) {
         </select><br>
 
         <label for="year">Year:</label>
-        <input type="number" name="year" min="2020" max="2100" required><br>
+        <input type="number" name="year" required><br>
 
         <label for="time_slot_id">Time Slot:</label>
         <select name="time_slot_id" required>

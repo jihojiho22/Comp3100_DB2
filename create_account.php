@@ -2,6 +2,8 @@
 session_start();
 require_once 'functions.php';
 
+$conn = get_db_connection();
+
 // If user is already logged in, redirect to dashboard
 if (isset($_SESSION['user_id'])) {
     header('Location: dashboard.php');
@@ -10,6 +12,14 @@ if (isset($_SESSION['user_id'])) {
 
 $email = isset($_SESSION['form_data']['email']) ? $_SESSION['form_data']['email'] : '';
 $error_messages = isset($_SESSION['error_messages']) ? $_SESSION['error_messages'] : [];
+
+$departments = [];
+$result = $conn->query("SELECT dept_name FROM department"); 
+
+while ($row = $result->fetch_assoc()) {
+    $departments[] = $row['dept_name'];
+}
+
 
 // Clear session variables
 if (isset($_SESSION['error_messages'])) {
@@ -56,6 +66,24 @@ if (isset($_SESSION['form_data'])) {
     <form action="process_account.php" method="POST">
         <label for="email">Email: </label>
         <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($email); ?>" required>
+        <br><br><br>
+        <label for="name">Name: </label>
+        <input type="name" id="name" name="name" required>
+        <br><br><br>
+        <label for="dept_name">Department: </label>
+        <select id="dept_name" name="dept_name" required>
+            <option value="">Select Department</option>
+            <?php foreach ($departments as $dept): ?>
+                <option value="<?php echo htmlspecialchars($dept); ?>"><?php echo htmlspecialchars($dept); ?></option>
+            <?php endforeach; ?>
+        </select>
+        <br><br><br>
+        <label for="degree">Select Your Degree Level:</label>
+        <select id="degree" name="degree">
+            <option value="undergraduate">Undergraduate</option>
+            <option value="master">Master's</option>
+            <option value="PhD">PhD</option>
+        </select>
         <br><br><br>
         <label for="password">Password: </label>
         <input type="password" id="password" name="password" required>

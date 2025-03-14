@@ -92,36 +92,104 @@ function verify_login($email, $password) {
     }
 }
 
+// Function to get student ID based on the user's email
+function get_student_id($user_email, $conn) {
+    $stmt = $conn->prepare("SELECT student_id FROM student WHERE email = ?");
+    $stmt->bind_param("s", $user_email);
+    $stmt->execute();
+    $stmt->bind_result($student_id);  
+    $stmt->fetch();
+    $stmt->close();
+
+    return $student_id;  
+}
+
 /**
  * Create a new user account
  * Returns [success, error_message]
  */
-function create_account($email, $password) {
+function create_account($email, $password, $name, $dept_name, $degree) {
     $conn = get_db_connection();
     
     // Default type for new users is 'student'
     $type = 'student';
     
-    $sql = "INSERT INTO account (email, password, type) VALUES (?, ?, ?)";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sss", $email, $password, $type);
+    // First, insert into the account table
+    $sql_account = "INSERT INTO account (email, password, type) VALUES (?, ?, ?)";
+    $stmt_account = $conn->prepare($sql_account);
+    $stmt_account->bind_param("sss", $email, $password, $type);
     
     try {
-        if ($stmt->execute()) {
-            $stmt->close();
-            $conn->close();
-            return [true, ""];
+        if ($stmt_account->execute()) {
+            $stmt_account->close();
+
+            // Generate unique student_id
+            $student_id = generate_unique_student_id($conn);
+            
+            // Insert into the student table
+            $sql_student = "INSERT INTO student (student_id, name, email, dept_name) VALUES (?, ?, ?, ?)";
+            $stmt_student = $conn->prepare($sql_student);
+            $stmt_student->bind_param("ssss", $student_id, $name, $email, $dept_name);
+
+            if ($stmt_student->execute()) {
+                $stmt_student->close();
+
+            // Insert into the degree tables
+                if ($degree === 'undergraduate') {
+                    $sql_degree = "INSERT INTO undergraduate (student_id, total_credits, class_standing) VALUES (?, NULL, NULL)";
+                } elseif ($degree === 'master') {
+                    $sql_degree = "INSERT INTO master (student_id, total_credits) VALUES (?, NULL)";
+                } elseif ($degree === 'PhD') {
+                    $sql_degree = "INSERT INTO PhD (student_id, qualifier, proposal_defence_date, dissertation_defence_date) VALUES (?, NULL, NULL, NULL)";
+                } else {
+                    $conn->close();
+                    return [false, "Invalid degree type."];
+                }
+
+                $stmt_degree = $conn->prepare($sql_degree);
+                $stmt_degree->bind_param("s", $student_id);
+
+                if ($stmt_degree->execute()) {
+                    $stmt_degree->close();
+                    $conn->close();
+                    return [true, ""];
+                } else {
+                    $error = $stmt_degree->error;
+                    $stmt_degree->close();
+                    $conn->close();
+                    return [false, "Database error in degree table: " . $error];
+                }
+            } else {
+                $error = $stmt_student->error;
+                $stmt_student->close();
+                $conn->close();
+                return [false, "Database error in student table: " . $error];
+            }
         } else {
-            $error = $stmt->error;
-            $stmt->close();
+            $error = $stmt_account->error;
+            $stmt_account->close();
             $conn->close();
-            return [false, "Database error: " . $error];
+            return [false, "Database error in account table: " . $error];
         }
     } catch (Exception $e) {
-        $stmt->close();
         $conn->close();
         return [false, "Exception: " . $e->getMessage()];
     }
+}
+
+
+
+function generate_unique_student_id($conn) {
+    do {
+        $student_id = random_int(10000000, 99999999);
+        $stmt = $conn->prepare("SELECT student_id FROM student WHERE student_id = ?");
+        $stmt->bind_param("s", $student_id);
+        $stmt->execute();
+        $stmt->store_result();
+    } while ($stmt->num_rows > 0);
+
+    $stmt->close();
+    return $student_id;
 }
 
 /**

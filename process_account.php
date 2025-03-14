@@ -6,6 +6,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'] ?? '';
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
+    $name = $_POST['name'] ?? '';
+    $student_id = $_POST['student_id'] ?? '';
+    $dept_name = $_POST['dept_name'] ?? '';
+    $degree= $_POST['degree'] ?? '';
+
     
     // Save form data in case of validation errors
     $_SESSION['form_data'] = [
@@ -43,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     // Create account
-    list($success, $error) = create_account($email, $password);
+    list($success, $error) = create_account($email, $password, $name, $dept_name, $degree);
     
     if ($success) {
         // Clear session form data

@@ -10,12 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$servername = "localhost"; 
-$username = "root";         
-$password = "";          
-$dbname = "DB2";
-
-$conn = new mysqli($servername, $username, $password, $dbname);
+$conn = get_db_connection();
 
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);

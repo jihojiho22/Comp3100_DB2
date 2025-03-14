@@ -2,7 +2,7 @@
 session_start();
 require_once 'functions.php';
 
-$conn = get_db_connection(); // Ensure we have a database connection
+$conn = get_db_connection();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $course_id = trim($_POST['course_id']);
