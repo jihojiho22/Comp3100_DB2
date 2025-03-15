@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'functions.php';
+require_once 'config&functions.php';
 
 // Require login to access this page
 require_login();
@@ -73,7 +73,7 @@ $result = $stmt->get_result();
         <p>You are not enrolled in any courses.</p>
     <?php endif; ?>
 
-    <a href="dashboard.php"><button type="button">Back to Dashboard</button></a>
+    <a href="student.php?page=home"><button type="button">Back to Dashboard</button></a>
 </body>
 </html>
 
