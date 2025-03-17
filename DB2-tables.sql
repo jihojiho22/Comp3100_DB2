@@ -235,3 +235,10 @@ INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (62
 INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (246262243, "Weed", 243, 15);
 INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (136161241, "Olney", 241, 15);
 INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (360953110, "Olney", 110, 15);
+
+INSERT INTO `prereq`(`course_id`, `prereq_id`) VALUES ('COMP1020','COMP1010');
+INSERT INTO `prereq`(`course_id`, `prereq_id`) VALUES ('COMP2010','COMP1010');
+INSERT INTO `prereq`(`course_id`, `prereq_id`) VALUES ('COMP2010','COMP1020');
+INSERT INTO `prereq`(`course_id`, `prereq_id`) VALUES ('COMP2040','COMP1010');
+INSERT INTO `prereq`(`course_id`, `prereq_id`) VALUES ('COMP2040','COMP1020');
+INSERT INTO `prereq`(`course_id`, `prereq_id`) VALUES ('COMP2040','COMP2010');
