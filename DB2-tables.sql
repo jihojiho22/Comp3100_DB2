@@ -218,3 +218,27 @@ insert into section (course_id, section_id, semester, year) value ('COMP1020', '
 insert into section (course_id, section_id, semester, year) value ('COMP2010', 'Section101', 'Fall', 2023);
 insert into section (course_id, section_id, semester, year) value ('COMP2010', 'Section102', 'Fall', 2023);
 insert into section (course_id, section_id, semester, year) value ('COMP2040', 'Section201', 'Spring', 2024);
+
+INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (108115340, "Olsen", 340, 15);
+INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (111108215, "Olsen", 215, 15);
+INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (101251110, "Olsen", 110, 15);
+INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (151353413, "Olsen", 413, 15);
+INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (139553221, "Shay", 221, 15);
+INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (135153312, "Shay", 312, 15);
+INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (135195164, "Shay", 164, 15);
+INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (810357424, "Shay", 424, 15);
+INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (083513132, "Falmouth", 132, 15);
+INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (125336421, "Falmouth", 421, 15);
+INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (527223253, "Ball", 253, 15);
+INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (136161135, "Ball", 135, 15);
+INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (624623344, "Ball", 344, 15);
+INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (246262243, "Weed", 243, 15);
+INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (136161241, "Olney", 241, 15);
+INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (360953110, "Olney", 110, 15);
+
+INSERT INTO `prereq`(`course_id`, `prereq_id`) VALUES ('COMP1020','COMP1010');
+INSERT INTO `prereq`(`course_id`, `prereq_id`) VALUES ('COMP2010','COMP1010');
+INSERT INTO `prereq`(`course_id`, `prereq_id`) VALUES ('COMP2010','COMP1020');
+INSERT INTO `prereq`(`course_id`, `prereq_id`) VALUES ('COMP2040','COMP1010');
+INSERT INTO `prereq`(`course_id`, `prereq_id`) VALUES ('COMP2040','COMP1020');
+INSERT INTO `prereq`(`course_id`, `prereq_id`) VALUES ('COMP2040','COMP2010');

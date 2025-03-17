@@ -159,6 +159,7 @@ unset($_SESSION['error_messages'], $_SESSION['success_message'], $_SESSION['form
                 <?php if (!is_admin() && !is_instructor()): ?>
                     <a href="student_register.php"><button type="button">Register Course</button></a>
                     <a href="student_history.php"><button type="button">View My Course</button></a>
+                    <a href="student_drop.php"><button type="button">Drop A Course</button></a>
                 <?php endif; ?>
 
                 <?php if (is_admin()): ?>
