@@ -10,6 +10,8 @@ require_login();
 $user_id = $_SESSION['user_id'];
 $user_type = $_SESSION['user_type'];
 $student_id = ($user_type === 'student') ? get_student_id($user_id, $conn) : null;
+$current_semester = "Fall";
+$current_year = 2023;
 
 if (!$student_id) {
     die("Error: Student ID not found.");
@@ -77,6 +79,8 @@ $result = $conn->query($sql);
 </head>
 <body>
     <h1>Register for Course Sections</h1>
+    <h2>Current Semester</h2>
+    <h3><?php echo htmlspecialchars($current_semester); ?> <?php echo htmlspecialchars($current_year); ?></h3>
 
     <?php if (isset($_SESSION['register_message'])): ?>
         <p style="color: green;">
@@ -94,12 +98,15 @@ $result = $conn->query($sql);
             $course_section_key = $row["course_id"] . "_" . $row["section_id"];
             $is_registered = isset($registered_courses[$course_section_key]);
 
-            echo "<li><strong>Course ID:</strong> " . htmlspecialchars($row["course_id"]) . 
-                 " - <strong>Section:</strong> " . htmlspecialchars($row["section_id"]) . 
-                 " - <strong>Course Name:</strong> " . htmlspecialchars($row["course_name"]) . 
-                 " - <strong>Semester:</strong> " . htmlspecialchars($row["semester"]) . 
-                 " - <strong>Year:</strong> " . htmlspecialchars($row["year"]) . 
-                 " - <strong>Credits:</strong> " . htmlspecialchars($row["credits"]);
+            if($row["semester"] == $current_semester && $row["year"] == $current_year) {
+
+                echo "<li><strong>Course ID:</strong> " . htmlspecialchars($row["course_id"]) . 
+                " - <strong>Section:</strong> " . htmlspecialchars($row["section_id"]) . 
+                " - <strong>Course Name:</strong> " . htmlspecialchars($row["course_name"]) . 
+                " - <strong>Semester:</strong> " . htmlspecialchars($row["semester"]) . 
+                " - <strong>Year:</strong> " . htmlspecialchars($row["year"]) . 
+                " - <strong>Credits:</strong> " . htmlspecialchars($row["credits"]);
+
 
             if ($is_registered) {
                 echo " <span style='color: green;'>✔ Already Registered</span>";
@@ -112,6 +119,9 @@ $result = $conn->query($sql);
                 echo '<button type="submit">Register</button>';
                 echo '</form>';
             }
+            }
+
+
 
             echo "</li>";
         }

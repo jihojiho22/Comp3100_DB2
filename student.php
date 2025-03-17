@@ -155,7 +155,7 @@ unset($_SESSION['error_messages'], $_SESSION['success_message'], $_SESSION['form
                     <p>Student ID: <?php echo htmlspecialchars($student_id); ?></p>
                 <?php endif; ?>
 
-            
+                  
                 <?php if (!is_admin() && !is_instructor()): ?>
                     <a href="student_register.php"><button type="button">Register Course</button></a>
                     <a href="student_history.php"><button type="button">View My Course</button></a>
@@ -164,6 +164,10 @@ unset($_SESSION['error_messages'], $_SESSION['success_message'], $_SESSION['form
                 <?php if (is_admin()): ?>
                     <a href="admin.php?page=add_course"><button type="button">Add Course</button></a>
                     <a href="admin.php?page=assign_section"><button type="button">Assign Section</button></a>
+                <?php endif; ?>
+
+                <?php if (is_admin() || is_instructor()): ?>
+                    <a href="admin.php?page=appoint_advisor"><button type="button">Appoint Advisor</button></a>
                 <?php endif; ?>
                 <?php
                 break;

@@ -137,6 +137,45 @@ $instructor_result = $conn->query($instructor_sql);
 $timeslot_sql = "SELECT time_slot_id, day, start_time, end_time FROM time_slot";
 $timeslot_result = $conn->query($timeslot_sql);
 
+$advisor_sql = "SELECT instructor_id, instructor_name FROM instructor";
+$advisor_result = $conn->query($advisor_sql);
+
+
+// Handle form submission for appointing an advisor
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'appoint_advisor') {
+    $instructor_id = trim($_POST['instructor_id']);
+    $student_id = trim($_POST['student_id']);
+    $start_date = trim($_POST['start_date']);
+    $end_date = trim($_POST['end_date']);
+
+    // Validate inputs
+    if (empty($instructor_id) || empty($student_id) || empty($start_date)  || empty($end_date)) {
+        $_SESSION['error_message'] = "Instructor, student, start date, and end date are required.";
+        header("Location: admin.php?page=appoint_advisor");
+        exit();
+    }
+
+    // Insert advisor record into the 'advise' table
+    $insert_advisor = "INSERT INTO advise (instructor_id, student_id, start_date, end_date) VALUES (?, ?, ?, ?)";
+    $stmt = $conn->prepare($insert_advisor);
+    if (!$stmt) {
+        die("Error preparing statement: " . $conn->error);
+    }
+    
+    $stmt->bind_param("ssss", $instructor_id, $student_id, $start_date, $end_date);
+
+    if ($stmt->execute()) {
+        $_SESSION['success_message'] = "Advisor successfully appointed!";
+        header("Location: admin.php?page=appoint_advisor");
+        exit();
+    } else {
+        $_SESSION['error_message'] = "Error inserting data: " . $stmt->error;
+        header("Location: admin.php?page=appoint_advisor");
+        exit();
+    }
+}
+
+
 $conn->close();
 ?>
 
@@ -242,6 +281,39 @@ $conn->close();
             <input type="text" name="classroom_id" required><br>
 
             <input type="submit" value="Create Course Section">
+        </form>
+        <a href="student.php?page=home"><button>Back To Dashboard</button></a> 
+    <?php endif; ?>
+
+    <?php if ($page === 'appoint_advisor'): ?>
+        <h1>Appoint Advisor</h1>
+        <form action="admin.php?page=appoint_advisor" method="post">
+            <label for="instructor_id">Select Instructor:</label>
+            <select name="instructor_id" required>
+                <option value="">Select an Instructor</option>
+                <?php
+                if ($advisor_result && $advisor_result->num_rows > 0) {
+                    while ($advisor_row = $advisor_result->fetch_assoc()) {
+                        echo "<option value='" . htmlspecialchars($advisor_row['instructor_id']) . "'>" 
+                            . htmlspecialchars($advisor_row['instructor_name']) 
+                            . "</option>";
+                    }
+                } else {
+                    echo "<option value=''>No instructors available</option>";
+                }
+                ?>
+            </select><br>
+
+            <label for="student_id">Student ID:</label>
+            <input type="text" name="student_id" required><br>
+
+            <label for="start_date">Start Date:</label>
+            <input type="date" name="start_date" required><br>
+
+            <label for="end_date">End Date</label>
+            <input type="date" name="end_date" required><br>
+
+            <input type="submit" value="Appoint Advisor">
         </form>
         <a href="student.php?page=home"><button>Back To Dashboard</button></a> 
     <?php endif; ?>
