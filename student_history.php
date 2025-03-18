@@ -30,7 +30,10 @@ $sql = "SELECT t.course_id, t.section_id, t.semester, t.year, t.grade,
                c.course_name, c.credits
         FROM take t
         JOIN course c ON t.course_id = c.course_id
-        WHERE t.student_id = ?";
+        WHERE t.student_id = ?
+        ORDER BY t.year DESC, 
+                 FIELD(t.semester, 'Summer', 'Spring', 'Winter', 'Fall')";
+
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("s", $student_id);
 $stmt->execute();
