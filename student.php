@@ -20,6 +20,11 @@ if ($user_type === 'student') {
     $student_id = get_student_id($user_id, $conn);
 }
 
+$instructor_id = null;
+if ($user_type === 'instructor') {
+    $instructor_id = get_instructor_id($user_id, $conn);
+}
+
 // Fetch departments
 $departments = [];
 $result = $conn->query("SELECT dept_name FROM department"); 
@@ -155,10 +160,14 @@ unset($_SESSION['error_messages'], $_SESSION['success_message'], $_SESSION['form
                     <p>Student ID: <?php echo htmlspecialchars($student_id); ?></p>
                 <?php endif; ?>
 
-                  
+                <?php if ($user_type === 'instructor'): ?>
+                    <p>Instructor ID: <?php echo htmlspecialchars($instructor_id); ?></p>
+                <?php endif; ?>
+
+                
                 <?php if (!is_admin() && !is_instructor()): ?>
                     <a href="student_register.php"><button type="button">Register Course</button></a>
-                    <a href="student_history.php"><button type="button">View My Course</button></a>
+                    <a href="student_history.php?page=my_courses"><button type="button">View My Course</button></a>
                     <a href="student_drop.php"><button type="button">Drop A Course</button></a>
                 <?php endif; ?>
 
@@ -169,6 +178,10 @@ unset($_SESSION['error_messages'], $_SESSION['success_message'], $_SESSION['form
 
                 <?php if (is_admin() || is_instructor()): ?>
                     <a href="admin.php?page=appoint_advisor"><button type="button">Appoint Advisor</button></a>
+                <?php endif; ?>
+
+                <?php if (is_instructor()): ?>
+                    <a href="student_history.php?page=course_records"><button type="button">View Course Records</button></a>
                 <?php endif; ?>
                 <?php
                 break;

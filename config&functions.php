@@ -104,6 +104,18 @@ function get_student_id($user_email, $conn) {
     return $student_id;  
 }
 
+// Function to get instructor ID based on the user's email
+function get_instructor_id($user_email, $conn) {
+    $stmt = $conn->prepare("SELECT instructor_id FROM instructor WHERE email = ?");
+    $stmt->bind_param("s", $user_email);
+    $stmt->execute();
+    $stmt->bind_result($instructor_id);  
+    $stmt->fetch();
+    $stmt->close();
+
+    return $instructor_id;  
+}
+
 /**
  * Create a new user account
  * Returns [success, error_message]

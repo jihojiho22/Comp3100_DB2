@@ -9,7 +9,7 @@ require_login();
 $user_id = $_SESSION['user_id'];
 $user_type = $_SESSION['user_type'];
 $student_id = ($user_type === 'student') ? get_student_id($user_id, $conn) : null;
-$current_semester = "Spring";
+$current_semester = "Fall";
 $current_year = 2024;
 
 if (!$student_id) {
