@@ -32,6 +32,8 @@ while ($row = $result->fetch_assoc()) {
     $departments[] = $row['dept_name'];
 }
 
+
+
 // Handle password update submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_password'])) {
     $current_password = $_POST['current_password'] ?? '';
@@ -164,22 +166,25 @@ unset($_SESSION['error_messages'], $_SESSION['success_message'], $_SESSION['form
                     <p>Instructor ID: <?php echo htmlspecialchars($instructor_id); ?></p>
                 <?php endif; ?>
 
-                
+                <!-- only accessbile to student -->
                 <?php if (!is_admin() && !is_instructor()): ?>
                     <a href="student_register.php"><button type="button">Register Course</button></a>
                     <a href="student_history.php?page=my_courses"><button type="button">View My Course</button></a>
                     <a href="student_drop.php"><button type="button">Drop A Course</button></a>
                 <?php endif; ?>
 
+                <!-- only accessbile to admin -->
                 <?php if (is_admin()): ?>
                     <a href="admin.php?page=add_course"><button type="button">Add Course</button></a>
                     <a href="admin.php?page=assign_section"><button type="button">Assign Section</button></a>
                 <?php endif; ?>
 
+                <!-- only accessbile to instructor and admin -->
                 <?php if (is_admin() || is_instructor()): ?>
                     <a href="admin.php?page=appoint_advisor"><button type="button">Appoint Advisor</button></a>
                 <?php endif; ?>
 
+                <!-- only accessbile to instructor -->
                 <?php if (is_instructor()): ?>
                     <a href="student_history.php?page=course_records"><button type="button">View Course Records</button></a>
                 <?php endif; ?>

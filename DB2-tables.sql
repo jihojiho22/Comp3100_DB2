@@ -21,6 +21,14 @@ create table instructor
 	 primary key (instructor_id)
 	);
 
+CREATE TABLE instructor_rating (
+    instructor_id VARCHAR(10),
+    rating NUMERIC(3,1),
+    student_id VARCHAR(10),
+    section_id VARCHAR(10),
+    course_id VARCHAR(20),
+    PRIMARY KEY (instructor_id, student_id, section_id, course_id),
+	);
 
 create table student
 	(student_id		varchar(10), 
