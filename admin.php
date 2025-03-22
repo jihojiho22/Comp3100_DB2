@@ -8,7 +8,6 @@ $page = isset($_GET['page']) ? $_GET['page'] : null;
 
 require_login();
 
-// Database connection
 $conn = get_db_connection();
 
 if ($conn->connect_error) {
@@ -55,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'assign_section') {
     $year = trim($_POST['year']);
     $instructor_id = trim($_POST['instructor_id']);
     $time_slot_id = trim($_POST['time_slot_id']);
-    $classroom_id = trim($_POST['classroom_id']);
+    $classroom_id = 1;
 
     // Validate inputs
     if (empty($course_id) || empty($section_id) || empty($semester) || empty($year) || empty($instructor_id) || empty($time_slot_id) || empty($classroom_id)) {
@@ -96,6 +95,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'assign_section') {
         exit();
     }
 
+
+    // Get the last used classroom ID and increment it by 1
+    $get_last_classroom_id = "SELECT MAX(classroom_id) AS last_classroom_id FROM section";
+    $stmt = $conn->prepare($get_last_classroom_id);
+    if (!$stmt) {
+        die("SQL Error: " . $conn->error);
+    }
+    $stmt->execute();
+    $result = $stmt->get_result()->fetch_assoc();
+    $classroom_id = isset($result['last_classroom_id']) ? $result['last_classroom_id'] + 1 : 1; 
+    
+    // Convert classroom_id to string format
+    $classroom_id = strval($classroom_id);
+
     // Insert new section
     $insert_section = "INSERT INTO section (course_id, section_id, semester, year, instructor_id, classroom_id, time_slot_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($insert_section);
@@ -106,7 +119,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'assign_section') {
 
     if ($stmt->execute()) {
         $_SESSION['success_message'] = "Course section successfully created!";
-        header("Location: student.php?page=home");
+        $default_building = "Main";
+        $default_room = "R" . $classroom_id;
+        
+        $stmt2 = $conn->prepare("INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (?, ?, ?, 2)");
+        if (!$stmt2) {
+            die("Error preparing classroom insert: " . $conn->error);
+        }
+        
+        $stmt2->bind_param("sss", $classroom_id, $default_building, $default_room);
+        
+        if (!$stmt2->execute()) {
+            $_SESSION['error_message'] = "Section created but classroom not added: " . $stmt2->error;
+        }
+        
+        $stmt2->close();
+        header("Location: admin.php?page=assign_section");
         exit();
     } else {
         $_SESSION['error_message'] = "Error inserting data: " . $stmt->error;
@@ -175,7 +203,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'appoint_advisor') {
     }
 }
 
-
 $conn->close();
 ?>
 
@@ -187,6 +214,25 @@ $conn->close();
     <title>Admin</title>
 </head>
 <body>
+    <!-- Display success/error messages if any -->
+    <?php if (isset($_SESSION['success_message'])): ?>
+        <div style="color: green; margin-bottom: 10px;">
+            <?php 
+                echo $_SESSION['success_message']; 
+                unset($_SESSION['success_message']);
+            ?>
+        </div>
+    <?php endif; ?>
+    
+    <?php if (isset($_SESSION['error_message'])): ?>
+        <div style="color: red; margin-bottom: 10px;">
+            <?php 
+                echo $_SESSION['error_message']; 
+                unset($_SESSION['error_message']);
+            ?>
+        </div>
+    <?php endif; ?>
+
     <!-- Add Course Section -->
     <?php if ($page === 'add_course'): ?>
         <h1>Add New Course</h1>
@@ -277,14 +323,12 @@ $conn->close();
                 ?>
             </select><br>
 
-            <label for="classroom_id">Classroom ID:</label>
-            <input type="text" name="classroom_id" required><br>
-
             <input type="submit" value="Create Course Section">
         </form>
         <a href="student.php?page=home"><button>Back To Dashboard</button></a> 
     <?php endif; ?>
 
+     <!-- Appoing Advisor Section -->
     <?php if ($page === 'appoint_advisor'): ?>
         <h1>Appoint Advisor</h1>
         <form action="admin.php?page=appoint_advisor" method="post">

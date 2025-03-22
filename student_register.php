@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
         if (!$prereq_met) {
             $_SESSION['register_message'] = "You cannot register for $course_id because you have not completed the required prerequisites.";
         } else {
-            // Register student
+            // Register course section
             $insert_sql = "INSERT INTO take (student_id, course_id, section_id, semester, year, grade) VALUES (?, ?, ?, ?, ?, NULL)";
             $insert_stmt = $conn->prepare($insert_sql);
             $insert_stmt->bind_param("ssssi", $student_id, $course_id, $section_id, $semester, $year);
@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
                 $_SESSION['register_message'] = "Successfully registered for course: " . htmlspecialchars($course_id);
             } else {
                 $_SESSION['register_message'] = "An error occurred. Please try again later.";
-                error_log("SQL Error: " . $conn->error); // Log error for debugging
+                error_log("SQL Error: " . $conn->error);
             }
             $insert_stmt->close();
         }
@@ -95,7 +95,11 @@ while ($row = $reg_result->fetch_assoc()) {
 $reg_stmt->close();
 
 // Fetch available courses
-$sql = "SELECT s.*, c.course_name, c.credits FROM section s JOIN course c ON s.course_id = c.course_id";
+$sql = "SELECT s.*, c.course_name, c.credits, r.capacity, 
+        (SELECT COUNT(*) FROM take t WHERE t.course_id = s.course_id AND t.section_id = s.section_id AND t.semester = s.semester AND t.year = s.year) AS enrolled_count 
+        FROM section s 
+        JOIN course c ON s.course_id = c.course_id 
+        JOIN classroom r ON s.classroom_id = r.classroom_id";
 $result = $conn->query($sql);
 
 ?>
@@ -133,7 +137,9 @@ $result = $conn->query($sql);
                         <strong>Course Name:</strong> <?php echo htmlspecialchars($row["course_name"]); ?> -
                         <strong>Semester:</strong> <?php echo htmlspecialchars($row["semester"]); ?> -
                         <strong>Year:</strong> <?php echo htmlspecialchars($row["year"]); ?> -
-                        <strong>Credits:</strong> <?php echo htmlspecialchars($row["credits"]); ?>
+                        <strong>Credits:</strong> <?php echo htmlspecialchars($row["credits"]); ?> -
+                        <strong>Capacity:</strong> <?php echo htmlspecialchars($row["enrolled_count"]); ?> / <?php echo htmlspecialchars($row["capacity"]); ?>
+                
 
                         <?php if ($is_registered): ?>
                             <span style='color: green;'>✔ Already Registered</span>
@@ -143,7 +149,7 @@ $result = $conn->query($sql);
                                 <input type="hidden" name="section_id" value="<?php echo htmlspecialchars($row["section_id"]); ?>">
                                 <input type="hidden" name="semester" value="<?php echo htmlspecialchars($row["semester"]); ?>">
                                 <input type="hidden" name="year" value="<?php echo htmlspecialchars($row["year"]); ?>">
-                                <button type="submit">Register</button>
+                                <button type="submit" <?php if ($row["enrolled_count"] >= $row["capacity"]) echo 'disabled'; ?>>Register</button>
                             </form>
                         <?php endif; ?>
                     </li>
