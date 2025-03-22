@@ -122,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'assign_section') {
         $default_building = "Main";
         $default_room = "R" . $classroom_id;
         
-        $stmt2 = $conn->prepare("INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (?, ?, ?, 2)");
+        $stmt2 = $conn->prepare("INSERT INTO classroom (classroom_id, building, room_number, capacity) VALUES (?, ?, ?, 15)");
         if (!$stmt2) {
             die("Error preparing classroom insert: " . $conn->error);
         }
