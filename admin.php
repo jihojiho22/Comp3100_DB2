@@ -203,6 +203,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'appoint_advisor') {
     }
 }
 
+// Assign TA to a course section
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'assign_ta') {
+    $student_id = trim($_POST['student_id']);
+    $selected_course = isset($_POST['selected_course']) ? trim($_POST['selected_course']) : null;
+
+    // Validate inputs
+    if (empty($student_id) || empty($selected_course)) {
+        $_SESSION['error_message'] = "Student ID and course selection are required.";
+        header("Location: admin.php?page=assign_ta");
+        exit();
+    }
+
+    // Parse selected course details
+    list($course_id, $section_id, $semester, $year) = explode("|", $selected_course);
+
+    // Check if the student ID exists in the PhD table
+    $check_phd = "SELECT * FROM PhD WHERE student_id = ?";
+    $stmt = $conn->prepare($check_phd);
+    if (!$stmt) {
+        die("Error preparing statement: " . $conn->error);
+    }
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $result_phd = $stmt->get_result();
+
+    if ($result_phd->num_rows == 0) {
+        $_SESSION['error_message'] = "Invalid PhD student ID.";
+        header("Location: admin.php?page=assign_ta");
+        exit();
+    }
+
+    // Check if the student is already assigned as a TA for any section
+    $check_ta = "SELECT * FROM TA WHERE student_id = ?";
+    $stmt = $conn->prepare($check_ta);
+    if (!$stmt) {
+        die("Error preparing statement: " . $conn->error);
+    }
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $result_ta = $stmt->get_result();
+
+    if ($result_ta->num_rows > 0) {
+        $_SESSION['error_message'] = "Student is already assigned as a TA for another section.";
+        header("Location: admin.php?page=assign_ta");
+        exit();
+    }
+
+    // Insert into TA table
+    $insert_ta = "INSERT INTO TA (student_id, course_id, section_id, semester, year) VALUES (?, ?, ?, ?, ?)";
+    $stmt = $conn->prepare($insert_ta);
+    if (!$stmt) {
+        die("Error preparing statement: " . $conn->error);
+    }
+    $stmt->bind_param("sssss", $student_id, $course_id, $section_id, $semester, $year);
+
+    if ($stmt->execute()) {
+        $_SESSION['success_message'] = "TA successfully assigned!";
+        header("Location: admin.php?page=assign_ta");
+        exit();
+    } else {
+        $_SESSION['error_message'] = "Error assigning TA: " . $stmt->error;
+        header("Location: admin.php?page=assign_ta");
+        exit();
+    }
+}
+
+
+
+// Fetch available courses for TA
+$sql = "SELECT *
+FROM (
+    SELECT s.*, c.course_name, c.credits, r.capacity, 
+        (SELECT COUNT(*) FROM take t WHERE t.course_id = s.course_id AND t.section_id = s.section_id AND t.semester = s.semester AND t.year = s.year) AS enrolled_count 
+    FROM section s 
+    JOIN course c ON s.course_id = c.course_id 
+    JOIN classroom r ON s.classroom_id = r.classroom_id
+) AS subquery
+WHERE enrolled_count >= 10;";
+$result = $conn->query($sql);
+
 $conn->close();
 ?>
 
@@ -361,6 +441,39 @@ $conn->close();
         </form>
         <a href="student.php?page=home"><button>Back To Dashboard</button></a> 
     <?php endif; ?>
+
+    <!-- Assign TA Section -->
+    <?php if ($page === 'assign_ta'): ?>
+    <h1>Assign TA</h1>
+    <h2>Available Courses for TA (Displaying courses with at least 10 students enrolled)</h2>
+
+    <form action="admin.php?page=assign_ta" method="post">
+        <label for="student_id">PhD Student ID:</label>
+        <input type="text" name="student_id" required><br><br>
+
+        <?php if ($result->num_rows > 0): ?>
+            <ul>
+                <?php while ($row = $result->fetch_assoc()): ?>
+                    <li>
+                        <input type="radio" name="selected_course" value="<?php echo htmlspecialchars($row["course_id"] . "|" . $row["section_id"] . "|" . $row["semester"] . "|" . $row["year"]); ?>">
+                        <strong>Course ID:</strong> <?php echo htmlspecialchars($row["course_id"]); ?> -
+                        <strong>Section:</strong> <?php echo htmlspecialchars($row["section_id"]); ?> -
+                        <strong>Course Name:</strong> <?php echo htmlspecialchars($row["course_name"]); ?> -
+                        <strong>Semester:</strong> <?php echo htmlspecialchars($row["semester"]); ?> -
+                        <strong>Year:</strong> <?php echo htmlspecialchars($row["year"]); ?> -
+                        <strong>Credits:</strong> <?php echo htmlspecialchars($row["credits"]); ?> -
+                        <strong>Capacity:</strong> <?php echo htmlspecialchars($row["enrolled_count"]); ?> / <?php echo htmlspecialchars($row["capacity"]); ?>
+                    </li>
+                <?php endwhile; ?>
+            </ul>
+            <button type="submit">Assign TA</button>
+        <?php else: ?>
+            <p>No available courses found.</p>
+        <?php endif; ?>
+    </form>
+    <a href="student.php?page=home"><button>Back To Dashboard</button></a>
+<?php endif; ?>
+
 
 </body>
 </html>
