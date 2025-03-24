@@ -125,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_rating'])) {
                         ?>
                         <?php if ($check_result->num_rows > 0): ?>
                             <!-- Rating already exists -->
-                            <p>Done!</p>
+                            <p>Already rated</p>
                         <?php else: ?>
                             <!-- Rating Form -->
                             <form method="POST" action="">
