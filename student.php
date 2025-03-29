@@ -178,6 +178,7 @@ unset($_SESSION['error_messages'], $_SESSION['success_message'], $_SESSION['form
                     <a href="admin.php?page=add_course"><button type="button">Add Course</button></a>
                     <a href="admin.php?page=assign_section"><button type="button">Assign Section</button></a>
                     <a href="admin.php?page=assign_ta"><button type="button">Assign TA</button></a>
+                    <a href="admin.php?page=instructor_rating"><button type="button">View Instructor Rating</button></a>
                 <?php endif; ?>
 
                 <!-- only accessbile to instructor and admin -->
