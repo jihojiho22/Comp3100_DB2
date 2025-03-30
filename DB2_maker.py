@@ -1,7 +1,20 @@
+import random
+
+def gen_studentID():
+  return str(random.randint(10**9, (10**10) - 1))
+
+OLS = "Olsen"
+LYD = "Lydon Library"
+SHA = "Shah Hall"
+FAL = "Falmouth Hall"
+PER = "Perry Hall"
+
 building_codes = {
-  "Olsen": 123456,
-  "Perry": 592371,
-  "Lydon": 301739
+  OLS: 123456,
+  PER: 592371,
+  LYD: 301739,
+  SHA : 742758,
+  FAL : 513287
 }
 
 ACCOUNTS = []
@@ -10,6 +23,7 @@ INSTRUCTORS = []
 CLASSROOMS = []
 TIMESLOTS = []
 COURSES = []
+STUDENTS = {}
 
 def create_account(email, pswd, _type):
     if email in ACCOUNTS:
@@ -41,6 +55,7 @@ def create_department(name, location):
     return "INSERT INTO department (dept_name, location) VALUES ('" + name + "', '" + location + "');\n"
 
 def create_time_slot(timeid, days, start_time, end_time):
+    print(timeid)
     TIMESLOTS.append(timeid)
     r = "INSERT INTO time_slot (time_slot_id, day, start_time, end_time) VALUES ("
     r += "'" + timeid + "', "
@@ -80,6 +95,41 @@ def make_years(course, sec, sem, s, e, instr, classid, tim, occ):
         s += 1
     return r
 
+def make_prereq(course_info, prereq_course_info):
+    return "INSERT INTO prereq (course_id, prereq_id) VALUES ('" + course_info[0] + "', '" + prereq_course_info[0] +"');" + "\n"
+
+
+def make_student(student_firstname, student_lastname, dept_name):
+    r = ""
+    student_name = student_firstname + " " + student_lastname
+    if student_name not in STUDENTS:
+        possible_id = gen_studentID()
+        while possible_id in STUDENTS.values():
+            possible_id = gen_studentID()
+        STUDENTS[student_name] = possible_id
+        r += "INSERT INTO students (student_id, name, email, dept_name) VALUES (\'"
+        r += possible_id + "\', "
+        r += "\'" + student_name + "\', "
+        r += "\'" + student_firstname + "_" + student_lastname + "@student.uml.edu\', "
+        r += "\'" + dept_name + "\');\n"
+    return r
+
+def add_student_to(student_info, course_info, section_id, semester, year, grade):
+    r = ""
+    # student_info = [student_firstname, student_lastname, dept_name]
+    student_name = student_info[0] + " " + student_info[1]
+    if student_name not in STUDENTS:
+        r += make_student(student_info[0], student_info[1], student_info[2])
+    r += "INSERT INTO take (student_id, course_id, section_id, semester, year, grade) VALUES ("
+    r += "\'" + STUDENTS[student_name] + "\', "
+    r += "\'" + course_info[0] + "\', "
+    r += "\'" + section_id + "\', "
+    r += "\'" + semester + "\', "
+    r += str(year) + ", "
+    r += "\'" + grade + "\');\n"
+    return r
+
+
 def make_section(course_id, course_name, course_credits,
                  section_id,
                  instruct_firstname, instruct_lastname,
@@ -106,28 +156,239 @@ def make_section(course_id, course_name, course_credits,
     time_slot_id += ts_start[:2] + ts_start[3:5] + "_" + ts_end[:2] + ts_end[3:5]
     if time_slot_id not in TIMESLOTS:
         r += create_time_slot(time_slot_id, ts_day, ts_start, ts_end)
-    r += make_years(course_id, section_id, _semester, startyear, endyear, instruct_id, classroom_id, time_slot_id, 0)
+    if (_semester == BOTH):
+        r += make_years(course_id, section_id, "Fall", startyear, endyear, instruct_id, classroom_id, time_slot_id, 0)
+        r += make_years(course_id, section_id, "Spring", startyear, endyear, instruct_id, classroom_id, time_slot_id, 0)
+    else:
+        r += make_years(course_id, section_id, _semester, startyear, endyear, instruct_id, classroom_id, time_slot_id, 0)
+
     return r
 
-full = ""
-full += make_section("ENGL1010", "College Writing I", 3,
-                 "202",
-                 "Michael", "Baron",
-                 "Part time faculty", "Micheal_Baron@uml.edu",
-                 "English Department", "OLeary Library, 61 Wilder Street, Lowell, MA 01854",
-                 "Olsen", "353", 15,
-                 "Fall", 2020, 2026,
-                 "MoWeFr", "10:00:00", "10:50:00")
+def make_sections_single(course_id, course_name, course_credits,
+                  dept_name, dept_location, section_info):
+    #section_info is a list
+    # section_info[0] = [start_section_number, end_section_number]
+    # section_info[1] = [instruct_firstname, instructor_lastname, instructor_title, instruct_email]
+    # section_info[2] = [classroom_building, classroom_number, classroom_capacity]
+    # section_info[3] = [semester, start_year, end_year]
+    # section_info[4] = [ts_day]
+    # section_info[5] = [[start_time_0, end_time_0], [start_time_1, end_time_1], ... [start_time_n, end_time_n] ]
+    # where n = end_section_number - start_section_number
+    # start_time_x and end_time_x are the time periods for the section number (start_section_number + x)
+    INSTRUCTOR = 1
+    CLASSROOM = 2
 
-full += make_section("ENGL1010", "College Writing I", 3,
-                 "204",
-                 "Jason", "Bellipanni",
-                 "Professor", "Jason_Bellipanni@uml.edu",
-                 "English Department", "OLeary Library, 61 Wilder Street, Lowell, MA 01854",
-                 "Olsen", "349", 15,
-                 "Fall", 2020, 2026,
-                 "MoWeFr", "08:00:00", "08:50:00")
-print(full)
+    r = ""
+    i = 0
+    current_section_num = section_info[0][0]
+    while (current_section_num <= section_info[0][1]):
+        r += make_section(course_id, course_name, course_credits,
+                 str(current_section_num),
+                 section_info[INSTRUCTOR][0], section_info[INSTRUCTOR][1],
+                 section_info[INSTRUCTOR][2], section_info[INSTRUCTOR][3],
+                 dept_name, dept_location,
+                 section_info[CLASSROOM][0], section_info[CLASSROOM][1], section_info[CLASSROOM][2],
+                 section_info[3][0], section_info[3][1], section_info[3][2],
+                 section_info[4][0], section_info[5][i][0], section_info[5][i][1])
+        i += 1
+        current_section_num += 1  
+    return r
+
+def make_sections_all(course_info, dept_info, all_section_infos):
+    # course_info = [course_id, course_name, course_credits]
+    # dept_info = [dept_name, dept_location]
+    # all_section_infos is a list of section_info, see make_sections_single() to see section_info definition
+    r = ""
+    for section_info in all_section_infos:
+        r += make_sections_single(course_info[0], course_info[1], course_info[2], dept_info[0], dept_info[1], section_info) + "\n"
+    return r
+    
+     
+
+_ENGLISH_DEPARTMENT_NAME = "English Department"
+_ENGLISH_DEPARTMENT_LOCATION = "OLeary Library, 61 Wilder Street, Lowell, MA 01854"
+ENGLISH_DEPT = [_ENGLISH_DEPARTMENT_NAME, _ENGLISH_DEPARTMENT_LOCATION]
+
+_CS_DEPARTMENT_NAME = "Miner School of Computer & Information Sciences"
+_CS_DEPARTMENT_LOCATION = "Dandeneau Hall, 1 University Avenue, Lowell, MA 01854"
+CS_DEPT = [_CS_DEPARTMENT_NAME, _CS_DEPARTMENT_LOCATION]
+
+_MATH_DEPARTMENT_NAME = "Department of Mathematics and Statistics"
+_MATH_DEPARTMENT_LOCATION = "Southwick Hall, 1 University Ave, Lowell, MA 01854"
+MATH_DEPT = [_MATH_DEPARTMENT_NAME, _MATH_DEPARTMENT_LOCATION]
+
+PROFESSOR = "Professor"
+PART_TIME_FACULTY = "Part time faculty"
+
+FALL = "Fall"
+SPRING = "Spring"
+BOTH = "Both"
+
+MW = "MoWe"
+MWF = "MoWeFr"
+TT = "TuTh"
+
+
+NINE_AM_50_MIN =    ["09:00:00", "09:50:00"]
+TEN_AM_50_MIN =     ["10:00:00", "10:50:00"]
+ELEVEN_AM_50_MIN =  ["11:00:00", "11:50:00"]
+ONE_PM_50_MIN =     ["13:00:00", "13:50:00"]
+TWO_PM_75_MIN =     ["14:00:00", "15:15:00"]
+NOON_50_MIN =       ["12:00:00", "12:50:00"]
+NINE_30_AM_75_MIN = ["09:30:00", "10:45:00"]
+ELEVEN_AM_75_MIN =  ["11:00:00", "12:15:00"]
+EIGHT_AM_50_MIN =   ["08:00:00", "08:50:00"]
+THREE_30_75_MIN =   ["03:30:00", "04:45:00"]
+FIVE_PM_75_MIN =    ["17:00:00", "18:15:00"]
+NOON_30_75_MIN =    ["12:30:00", "13:45:00"]
+
+INSTRUCTOR_DANE_CHRISTENSEN = ["Dane", "Chirstensen", PROFESSOR, "Dane_Christensen@cs.uml.edu"]
+INSTRUCTOR_RYAN_OCONNELL = ["Ryan", "OConnell", PROFESSOR, "Ryan_OConnell@cs.uml.edu"]
+INSTRUCTOR_YELENA_RYKALOVA = ["Yelena", "Rykalova", PROFESSOR, "Yelena_Rykalova@cs.uml.edu"]
+INSTRUCTOR_DAVID_ADAMS = ["David", "Adams", PROFESSOR, "dadams@cs.uml.edu"]
+INSTRUCTOR_JOHANNES_WEIS = ["Johannes", "Weis", PROFESSOR, "Johannes_Weis@cs.uml.edu"]
+INSTRUCTOR_SIRONG_LIN = ["Sirong", "Lin", PROFESSOR, "Sirong_Lin@cs.uml.edu"]
+INSTRUCTOR_CHARLES_WILKES = ["Charles", "Wilkes", PROFESSOR, "Charles_Wilkes@cs.uml.edu"]
+INSTRUCTOR_JAMES_DALY = ["James", "Daly", PROFESSOR, "James_Daly@cs.uml.edu"]
+INSTRUCTOR_MICHAEL_BARON = ["Michael", "Baron", PROFESSOR, "Michael_Baron@uml.edu"]
+INSTRUCTOR_JASON_BELLIPANNI = ["Jason", "Bellipanni", PROFESSOR, "Jason_Bellipanni@uml.edu"]
+INSTRUCTOR_DARRIN_BERARD = ["Darrin", "Berard", PROFESSOR, "Darrin_Berard@uml.edu"]
+INSTRUCTOR_THERESA_DEFRANZO = ["Theresa", "DeFranzo", PROFESSOR, "Theresa_DeFranzo@uml.edu"]
+INSTRUCTOR_THERESA_SCHILLE = ["Theresa", "Schille", PROFESSOR, "Theresa_Schille@uml.edu"]
+INSTRUCTOR_SUNGHYE_YEH = ["Sunghye", "Yeh", PROFESSOR, "Sunghye_Yeh@uml.edu"]
+INSTRUCTOR_JENNIFER_GONZALEZZUGASTI = ["Jennifer", "GonzalezZugasti", PROFESSOR, "Jennifer_GonzalezZugasti@uml.edu"]
+INSTRUCTOR_JEANNE_DEROSA = ["Jeanne", "Derosa", PROFESSOR, "Jeanne_Derosa@uml.edu"]
+INSTRUCTOR_TIMOTHY_ROGERS = ["Timothy", "Rogers", PROFESSOR, "Timothy_Rogers@uml.edu"]
+INSTRUCTOR_SARA_BACKER = ["Sara", "Backer", PROFESSOR, "Sara_Backer@uml.edu"]
+INSTRUCTOR_THOA_TRAN = ["Thoa", "Tran", PROFESSOR, "Thoa_Tran@uml.edu"]
+INSTRUCTOR_HOWARD_TROUGHTON = ["Howard", "Troughton", PROFESSOR, "Howard_Troughton@uml.edu"]
+INSTRUCTOR_CARLY_BRIGGS = ["Carly", "Briggs", PROFESSOR, "Carly_Briggs@uml.edu"]
+
+STUDENT_REGGIE_PALMER = ["Reggie", "Palmer", _CS_DEPARTMENT_NAME]
+
+SHA_303 = [SHA, "303", 15]
+FAL_209 = [FAL, "209", 15]
+LYD_110 = [LYD, "110", 15]
+OLS_503 = [OLS, "503", 15]
+OLS_330 = [OLS, "330", 15]
+OLS_408 = [OLS, "408", 15]
+FAL_313 = [FAL, "313", 15]
+OLS_353 = [OLS, "353", 15]
+OLS_349 = [OLS, "349", 15]
+OLS_106 = [OLS, "106", 15]
+PER_107 = [PER, "107", 15]
+OLS_349 = [OLS, "349", 15]
+OLS_407 = [OLS, "407", 15]
+FAL_309 = [FAL, "309", 15]
+OLS_405 = [OLS, "405", 15]
+OLS_109 = [OLS, "109", 15]
+
+
+FALL_ALL = [FALL, 2020, 2026]
+SPRING_ALL = [SPRING, 2020, 2026]
+BOTH_ALL = [BOTH, 2020, 2026]
+
+DAY_MW = [MW]
+DAY_MWF = [MWF]
+DAY_TT = [TT]
+
+COMP1010 = ["COMP1010", "Computing I", 4]
+COMP1020 = ["COMP1020", "Computing II", 4]
+COMP2010 = ["COMP2010", "Computing III", 4]
+COMP2040 = ["COMP2040", "Computing IV", 4]
+ENGL1010 = ["ENGL1010", "College Writing I", 3]
+MATH1310 = ["MATH1310", "Calculus I", 4]
+MATH1320 = ["MATH1320", "Calculus II", 4]
+ENGL1020 = ["ENGL1020", "College Writing II", 3]
+# section_info[0] = [start_section_number, end_section_number]
+    # section_info[1] = [instruct_firstname, instructor_lastname, instructor_title, instruct_email]
+    # section_info[2] = [classroom_building, classroom_number, classroom_capacity]
+    # section_info[3] = [semester, start_year, end_year]
+    # section_info[4] = [ts_day]
+    # section_info[5] = [[start_time_0, end_time_0], [start_time_1, end_time_1], ... [start_time_n, end_time_n] ]
+
+def make_full():
+    full = ""
+
+    full += make_sections_all(COMP1010, CS_DEPT, [
+        [[101, 103], INSTRUCTOR_DANE_CHRISTENSEN, LYD_110, FALL_ALL, DAY_MWF, [NINE_AM_50_MIN, TEN_AM_50_MIN, ELEVEN_AM_50_MIN]],
+        [[104, 104], INSTRUCTOR_YELENA_RYKALOVA, SHA_303, FALL_ALL, DAY_TT, [TWO_PM_75_MIN]],
+        [[105, 106], INSTRUCTOR_RYAN_OCONNELL, FAL_209, FALL_ALL, DAY_MWF, [NINE_AM_50_MIN, TEN_AM_50_MIN]],
+        [[102, 103], INSTRUCTOR_RYAN_OCONNELL, FAL_209, SPRING_ALL, DAY_MWF, [TEN_AM_50_MIN, ELEVEN_AM_50_MIN]]
+    ])
+
+    full += make_sections_all(COMP1020, CS_DEPT, [
+        [[101, 102], INSTRUCTOR_DAVID_ADAMS, SHA_303, FALL_ALL, DAY_MWF, [ELEVEN_AM_50_MIN, NOON_50_MIN]],
+        [[101, 101], INSTRUCTOR_YELENA_RYKALOVA, SHA_303, SPRING_ALL, DAY_TT, [TWO_PM_75_MIN]],
+        [[102, 103], INSTRUCTOR_JOHANNES_WEIS, OLS_503, SPRING_ALL, DAY_MWF, [NINE_AM_50_MIN, TEN_AM_50_MIN]]
+    ])
+
+    full += make_prereq(COMP1020, COMP1010)
+
+    full += make_sections_all(COMP2010, CS_DEPT, [
+        [[101, 101], INSTRUCTOR_YELENA_RYKALOVA, SHA_303, FALL_ALL, DAY_TT, [NINE_30_AM_75_MIN]],
+        [[101, 101], INSTRUCTOR_SIRONG_LIN, OLS_408, SPRING_ALL, DAY_TT, [ELEVEN_AM_75_MIN]],
+        [[102, 102], INSTRUCTOR_CHARLES_WILKES, OLS_330, SPRING_ALL, DAY_MWF, [TEN_AM_50_MIN]]
+    ])
+
+    full += make_prereq(COMP2010, COMP1020)
+
+    full += make_sections_all(COMP2040, CS_DEPT, [
+        [[201, 202], INSTRUCTOR_JAMES_DALY, FAL_209, FALL_ALL, DAY_MWF, [ELEVEN_AM_50_MIN, NOON_50_MIN]],
+        [[201, 202], INSTRUCTOR_JAMES_DALY, FAL_209, SPRING_ALL, DAY_MWF, [ELEVEN_AM_50_MIN, NOON_50_MIN]],
+        [[203, 204], INSTRUCTOR_YELENA_RYKALOVA, FAL_313, SPRING_ALL, DAY_TT, [NINE_30_AM_75_MIN, ELEVEN_AM_75_MIN]]
+    ])
+
+    full += make_prereq(COMP2040, COMP2010)
+
+    full += make_sections_all(ENGL1010, ENGLISH_DEPT, [
+        [[202, 203], INSTRUCTOR_MICHAEL_BARON, OLS_353, FALL_ALL, DAY_MWF, [TEN_AM_50_MIN, ELEVEN_AM_50_MIN]],
+        [[204, 205], INSTRUCTOR_JASON_BELLIPANNI, OLS_349, FALL_ALL, DAY_MWF, [EIGHT_AM_50_MIN, NINE_AM_50_MIN]],
+        [[206, 207], INSTRUCTOR_DARRIN_BERARD, OLS_106, FALL_ALL, DAY_MW, [THREE_30_75_MIN, FIVE_PM_75_MIN]],
+        [[203, 203], INSTRUCTOR_MICHAEL_BARON, PER_107, SPRING_ALL, DAY_MWF, [TEN_AM_50_MIN]],
+        [[205, 205], INSTRUCTOR_THERESA_DEFRANZO, OLS_349, SPRING_ALL, DAY_TT, [NINE_30_AM_75_MIN]],
+        [[207, 207], INSTRUCTOR_MICHAEL_BARON, PER_107, SPRING_ALL, DAY_MWF, [ELEVEN_AM_50_MIN]]
+    ])
+
+    full += make_sections_all(MATH1310, MATH_DEPT, [
+        [[201, 201], INSTRUCTOR_THERESA_SCHILLE, OLS_407, FALL_ALL, DAY_MWF, [NINE_30_AM_75_MIN]],
+        [[202, 202], INSTRUCTOR_SUNGHYE_YEH, OLS_407, FALL_ALL, DAY_MWF, [ELEVEN_AM_75_MIN]],
+        [[203, 203], INSTRUCTOR_JENNIFER_GONZALEZZUGASTI, FAL_313, FALL_ALL, DAY_MWF, [NOON_30_75_MIN]],
+        [[204, 204], INSTRUCTOR_JEANNE_DEROSA, FAL_313, FALL_ALL, DAY_MWF, [FIVE_PM_75_MIN]],
+        [[201, 202], INSTRUCTOR_SUNGHYE_YEH, FAL_313, SPRING_ALL, DAY_MWF, [NINE_30_AM_75_MIN, ELEVEN_AM_75_MIN]],
+        [[204, 204], INSTRUCTOR_SUNGHYE_YEH, FAL_313, SPRING_ALL, DAY_MWF, [NOON_30_75_MIN]]
+    ])
+
+    full += make_sections_all(ENGL1020, ENGLISH_DEPT, [
+        [[201, 201], INSTRUCTOR_THERESA_DEFRANZO, OLS_349, FALL_ALL, DAY_MWF, [NOON_50_MIN]],
+        [[204, 204], INSTRUCTOR_JASON_BELLIPANNI, PER_107, FALL_ALL, DAY_MWF, [ELEVEN_AM_50_MIN]],
+        [[208, 208], INSTRUCTOR_TIMOTHY_ROGERS, OLS_353, FALL_ALL, DAY_TT, [ELEVEN_AM_75_MIN]],
+        [[201, 202], INSTRUCTOR_SARA_BACKER, PER_107, SPRING_ALL, DAY_TT, [NINE_30_AM_75_MIN, ELEVEN_AM_75_MIN]]
+    ])
+
+    full += make_prereq(ENGL1020, ENGL1010)
+
+    full += make_sections_all(MATH1320, MATH_DEPT, [
+        [[201, 201], INSTRUCTOR_HOWARD_TROUGHTON, OLS_405, FALL_ALL, DAY_MWF, [NINE_30_AM_75_MIN]],
+        [[202, 202], INSTRUCTOR_CARLY_BRIGGS, FAL_309, FALL_ALL, DAY_MWF, [NOON_30_75_MIN]],
+        [[203, 204], INSTRUCTOR_THOA_TRAN, FAL_313, FALL_ALL, DAY_MWF, [TWO_PM_75_MIN, ELEVEN_AM_75_MIN]],
+        [[202, 202], INSTRUCTOR_HOWARD_TROUGHTON, OLS_109, SPRING_ALL, DAY_MWF, [NINE_30_AM_75_MIN]],
+        [[204, 204], INSTRUCTOR_HOWARD_TROUGHTON, OLS_109, SPRING_ALL, DAY_MWF, [ELEVEN_AM_75_MIN]]
+    ])
+    full += make_prereq(MATH1320, MATH1310)
+
+    full += add_student_to(STUDENT_REGGIE_PALMER, COMP1010, "101", FALL, 2021, "A")
+    print(full)
+
+make_full()
+
+def make_inst_info(first_name, last_name, title):
+    r = "INSTRUCTOR_" + first_name.upper() + "_" + last_name.upper()
+    r += " = [\"" + first_name + "\", "
+    r += "\"" + last_name + "\", "
+    r += title + ", "
+    r += "\"" + first_name + "_" + last_name + "@uml.edu\"]"
+    return (r + "\n")
 #course_id -> course_id, course_name, credits
 #section_id 
 #instructor_id ->    instructor_id
@@ -148,20 +409,3 @@ print(full)
 #                    start
 #                    end
 #
-#print(make_years('ENGL1010', '202', 'Fall', 2020, 2026, 'MBaron', 123456353, 'MWF10', 0))
-
-#print(make_years('ENGL1010', '203', 'Fall', 2020, 2026, 'MBaron', 123456353, 'MWF11', 0))
-
-#print(make_years('ENGL1010', '204', 'Fall', 2020, 2026, 'JBellipan', 123456349, 'MWF8', 0))
-
-#print(make_years('ENGL1010', '205', 'Fall', 2020, 2026, 'JBellipan', 123456349, 'MWF9', 0))
-
-#print(make_years('ENGL1010', '206', 'Fall', 2020, 2026, 'DBerard', 123456106, 'MW1530', 0))
-
-#print(make_years('ENGL1010', '207', 'Fall', 2020, 2026, 'DBerard', 123456106, 'MW17', 0))
-
-#print(make_years('MATH1310', '201', 'Fall', 2020, 2026, 'YSunghye', 869755407, '', 0))
-
-#print(make_years('MATH1310', '202', 'Fall', 2020, 2026, '', 123456353, '', 0))
-
-#print(make_years('MATH1310', '2-3', 'Fall', 2020, 2026, '', 123456353, '', 0))

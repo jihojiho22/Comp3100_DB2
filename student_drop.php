@@ -34,30 +34,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
     $semester = $_POST['semester'];
     $year = $_POST['year'];
 
-    // Check if not registered
-    $check_sql = "SELECT * FROM take WHERE student_id = ? AND course_id = ? AND section_id = ? AND semester = ? AND year = ?";
-    $check_stmt = $conn->prepare($check_sql);
-    $check_stmt->bind_param("ssssi", $student_id, $course_id, $section_id, $semester, $year);
-    $check_stmt->execute();
-    $check_result = $check_stmt->get_result();
+    // Start transaction
+    $conn->begin_transaction();
 
-    if ($check_result->num_rows <= 0) {
-        $_SESSION['register_message'] = "You are not registered for this course section.";
-    } else {
-        // Delete student
-        $delete_sql = "DELETE FROM take WHERE student_id = ? AND course_id = ? AND section_id = ? AND semester = ? AND year = ?";
-        $delete_stmt = $conn->prepare($delete_sql);
-        $delete_stmt->bind_param("ssssi", $student_id, $course_id, $section_id, $semester, $year);
+    try {
+        // Check if student is registered
+        $check_sql = "SELECT * FROM take WHERE student_id = ? AND course_id = ? AND section_id = ? AND semester = ? AND year = ?";
+        $check_stmt = $conn->prepare($check_sql);
+        $check_stmt->bind_param("ssssi", $student_id, $course_id, $section_id, $semester, $year);
+        $check_stmt->execute();
+        $check_result = $check_stmt->get_result();
 
-        if ($delete_stmt->execute()) {
-            $_SESSION['register_message'] = "Successfully dropped course: " . htmlspecialchars($course_id);
+        if ($check_result->num_rows <= 0) {
+            $_SESSION['register_message'] = "You are not registered for this course section.";
         } else {
-            $_SESSION['register_message'] = "Error dropping course: " . $conn->error;
-        }
-        $delete_stmt->close();
-    }
+            // Delete student from take table
+            $delete_sql = "DELETE FROM take WHERE student_id = ? AND course_id = ? AND section_id = ? AND semester = ? AND year = ?";
+            $delete_stmt = $conn->prepare($delete_sql);
+            $delete_stmt->bind_param("ssssi", $student_id, $course_id, $section_id, $semester, $year);
+            $delete_stmt->execute();
 
-    $check_stmt->close();
+            // Check waitlist for this section
+            $waitlist_sql = "SELECT student_id FROM waitlist 
+                           WHERE course_id = ? AND section_id = ? AND semester = ? AND year = ?
+                           ORDER BY request_time ASC LIMIT 1";
+            $waitlist_stmt = $conn->prepare($waitlist_sql);
+            $waitlist_stmt->bind_param("sssi", $course_id, $section_id, $semester, $year);
+            $waitlist_stmt->execute();
+            $waitlist_result = $waitlist_stmt->get_result();
+
+            if ($waitlist_result->num_rows > 0) {
+                // Get first student from waitlist
+                $waitlist_student = $waitlist_result->fetch_assoc();
+                $waitlist_student_id = $waitlist_student['student_id'];
+
+                // Enroll waitlisted student
+                $enroll_sql = "INSERT INTO take (student_id, course_id, section_id, semester, year) 
+                              VALUES (?, ?, ?, ?, ?)";
+                $enroll_stmt = $conn->prepare($enroll_sql);
+                $enroll_stmt->bind_param("ssssi", $waitlist_student_id, $course_id, $section_id, $semester, $year);
+                $enroll_stmt->execute();
+
+                // Remove enrolled student from waitlist
+                $remove_waitlist_sql = "DELETE FROM waitlist 
+                                      WHERE student_id = ? AND course_id = ? AND section_id = ? AND semester = ? AND year = ?";
+                $remove_waitlist_stmt = $conn->prepare($remove_waitlist_sql);
+                $remove_waitlist_stmt->bind_param("ssssi", $waitlist_student_id, $course_id, $section_id, $semester, $year);
+                $remove_waitlist_stmt->execute();
+            }
+
+            $_SESSION['register_message'] = "Successfully dropped course: " . htmlspecialchars($course_id);
+            
+            $conn->commit();
+        }
+    } catch (Exception $e) {
+        $conn->rollback();
+        $_SESSION['register_message'] = "Error dropping course: " . $e->getMessage();
+    }
 }
 
 // Fetch registered courses

@@ -168,6 +168,12 @@ $timeslot_result = $conn->query($timeslot_sql);
 $advisor_sql = "SELECT instructor_id, instructor_name FROM instructor";
 $advisor_result = $conn->query($advisor_sql);
 
+// Fetch instructor ratings
+$rating_sql = "SELECT i.instructor_id, i.instructor_name, AVG(ir.rating) as avg_rating 
+               FROM instructor i
+               LEFT JOIN instructor_rating ir ON i.instructor_id = ir.instructor_id
+               GROUP BY i.instructor_id, i.instructor_name";
+$rating_result = $conn->query($rating_sql);
 
 // Handle form submission for appointing an advisor
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'appoint_advisor') {
@@ -570,6 +576,32 @@ $conn->close();
             <input type="submit" value="Appoint Advisor">
         </form>
         <a href="student.php?page=home"><button>Back To Dashboard</button></a> 
+    <?php endif; ?>
+
+    <!-- Instructor Ratings Section -->
+    <?php if ($page === 'instructor_rating'): ?>
+        <h1>Instructor Ratings</h1>
+        <table border="1">
+            <tr>
+                <th>Instructor ID</th>
+                <th>Instructor Name</th>
+                <th>Average Rating</th>
+            </tr>
+            <?php
+            if ($rating_result && $rating_result->num_rows > 0) {
+                while ($rating_row = $rating_result->fetch_assoc()) {
+                    echo "<tr>";
+                    echo "<td>" . htmlspecialchars($rating_row['instructor_id']) . "</td>";
+                    echo "<td>" . htmlspecialchars($rating_row['instructor_name']) . "</td>";
+                    echo "<td>" . ($rating_row['avg_rating'] ? number_format($rating_row['avg_rating'], 2) : 'No ratings') . "</td>";
+                    echo "</tr>";
+                }
+            } else {
+                echo "<tr><td colspan='3'>No ratings available</td></tr>";
+            }
+            ?>
+        </table>
+        <a href="student.php?page=home"><button>Back To Dashboard</button></a>
     <?php endif; ?>
 
     <!-- Assign TA Section -->

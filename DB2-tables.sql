@@ -30,6 +30,20 @@ CREATE TABLE instructor_rating (
     PRIMARY KEY (instructor_id, student_id, section_id, course_id),
 	);
 
+CREATE TABLE waitlist (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id VARCHAR(10) NOT NULL,
+    course_id VARCHAR(20) NOT NULL,
+    section_id VARCHAR(10) NOT NULL,
+    semester VARCHAR(6) NOT NULL,
+    year INT NOT NULL,
+    request_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_waitlist (student_id, course_id, section_id, semester, year),
+    FOREIGN KEY (student_id) REFERENCES student(student_id) ON DELETE CASCADE,
+    FOREIGN KEY (course_id) REFERENCES course(course_id) ON DELETE CASCADE
+	);
+
+
 create table student
 	(student_id		varchar(10), 
 	 name			varchar(20) not null, 
