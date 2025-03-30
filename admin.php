@@ -269,8 +269,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'assign_ta') {
     }
 }
 
-
-
 // Fetch available courses for TA
 $sql = "SELECT *
 FROM (
@@ -282,7 +280,139 @@ FROM (
 ) AS subquery
 WHERE enrolled_count >= 10;";
 $result = $conn->query($sql);
+$conn->close();
 
+// Assign an undergrader grader for a course section
+if ($_SERVER[$_REQUEST_METHOD] === 'POST' && $page === 'assign_grader_undergrad') {
+    $student_id = trim($_POST['student_id']);
+    $selected_course = isset($_POST['selected_course']) ? trim($_POST['selected_course']) : null;
+
+    // Validate inputs
+    if (empty($student_id) || empty($selected_course)) {
+        $_SESSION['error_message'] = "Student ID and course selection are required.";
+        header("Location: admin.php?page=assign_grader_undergrad");
+        exit();
+    }
+
+    // Parse selected course details
+    list($course_id, $section_id, $semester, $year) = explode("|", $selected_course);
+
+    // Check if student is undergrad student is a grader in any other secion
+    $check_undergrad = 
+        "SELECT student_id, section_id
+        FROM undergraduateGrader
+        WHERE student_id = ? AND section_id = ?";
+    $stmt = $conn->prepare($check_undergrad);
+    if (!$stmt) {
+        die("Error preparing statement: " . $conn->error);
+    }
+
+    $stmt->bind_param("ss", $student_id, $section_id);
+    $stmt->execute();
+    $result_undergrad = $stmt->get_result();
+
+    if ($result_undergrad->num_rows > 0) {
+        $_SESSION['error_message'] = "Undergraduate student is already assigned as a grader for another section.";
+        header("Location: admin.php?page=assign_grader_undergrad");
+        exit();
+    } 
+
+    // Insert into undergraduateGrader table
+    $insert_undergrad = 
+        "INSERT INTO undergraduateGrader (student_id, course_id, section_id, semester, year)
+        VALUES (?, ?, ?, ?, ?)";
+    $stmt = $conn->prepare($insert_undergrad);
+    if (!$stmt) {
+        die("Error preparing statement: " . $conn->error);
+    }
+
+    $stmt->bind_param("sssss", $student_id, $course_id, $section_id, $semester, $year);
+
+    if ($stmt->execute()) {
+        $_SESSION['success_message'] = "Grader successfully assigned!";
+        header("Location: admin.php?page=assign_grader_undergrad");
+        exit();
+    } else {
+        $_SESSION['error_message'] = "Error assigning grader: " . $stmt->error;
+        header("Location: admin.php?page=assign_grader_undergrad");
+        exit();
+    }
+}
+
+
+// Assign an master student grader for a course section
+if ($_SERVER[$_REQUEST_METHOD] === 'POST' && $page === 'assign_grader_master') {
+    $student_id = trim($_POST['student_id']);
+    $selected_course = isset($_POST['selected_course']) ? trim($_POST['selected_course']) : null;
+
+    // Validate inputs
+    if (empty($student_id) || empty($selected_course)) {
+        $_SESSION['error_message'] = "Student ID and course selection are required.";
+        header("Location: admin.php?page=assign_grader_master");
+        exit();
+    }
+
+    // Parse selected course details
+    list($course_id, $section_id, $semester, $year) = explode("|", $selected_course);
+
+    // Check if student is master student is a grader in any other secion
+    $check_master = 
+        "SELECT student_id, section_id
+        FROM masterGrader
+        WHERE student_id = ? AND section_id = ?";
+    $stmt = $conn->prepare($check_master);
+    if (!$stmt) {
+        die("Error preparing statement: " . $conn->error);
+    }
+
+    $stmt->bind_param("ss", $student_id, $section_id);
+    $stmt->execute();
+    $result_master = $stmt->get_result();
+
+    if ($result_master->num_rows > 0) {
+        $_SESSION['error_message'] = "Masters student is already assigned as a grader for another section.";
+        header("Location: admin.php?page=assign_grader_master");
+        exit();
+    } 
+
+    // Insert into masterGrader table
+    $insert_master = 
+        "INSERT INTO masterGrader (student_id, course_id, section_id, semester, year)
+        VALUES (?, ?, ?, ?, ?)";
+    $stmt = $conn->prepare($insert_master);
+    if (!$stmt) {
+        die("Error preparing statement: " . $conn->error);
+    }
+
+    $stmt->bind_param("sssss", $student_id, $course_id, $section_id, $semester, $year);
+
+    if ($stmt->execute()) {
+        $_SESSION['success_message'] = "Grader successfully assigned!";
+        header("Location: admin.php?page=assign_grader");
+        exit();
+    } else {
+        $_SESSION['error_message'] = "Error assigning grader: " . $stmt->error;
+        header("Location: admin.php?page=assign_grader");
+        exit();
+    }
+}
+// Fetch available courses for grader
+$sql = 
+    "SELECT *
+    FROM (
+        SELECT s.*, c.course_name, c.credits, r.capacity, 
+            (SELECT COUNT(*) 
+            FROM take t 
+            WHERE t.course_id = s.course_id 
+            AND t.section_id = s.section_id 
+            AND t.semester = s.semester 
+            AND t.year = s.year) AS enrolled_count 
+        FROM section s 
+        JOIN course c ON s.course_id = c.course_id 
+        JOIN classroom r ON s.classroom_id = r.classroom_id
+    ) AS subquery
+    WHERE enrolled_count >= 5 AND enrolled_count < 10;";
+$result = $conn->query($sql);
 $conn->close();
 ?>
 
@@ -473,6 +603,70 @@ $conn->close();
     </form>
     <a href="student.php?page=home"><button>Back To Dashboard</button></a>
 <?php endif; ?>
+
+<!-- Assign Grader Undergrad Section -->
+    <?php if ($page === 'assign_grader_undergrad'): ?>
+        <h1>Assign Undergraduate Grader</h1>
+        <h2>Available Courses for Undergraduate Grader (Displaying courses with 5 to 10 students enrolled)</h2>
+
+        <form action="admin.php?page=assign_grader_undergrad" method="post">
+            <label for="student_id">Undergraduate Student ID:</label>
+            <input type="text" name="student_id" required><br><br>
+
+            <?php if ($result->num_rows > 0): ?>
+                <ul>
+                    <?php while ($row = $result->fetch_assoc()): ?>
+                        <li>
+                            <input type="radio" name="selected_course" value="<?php echo htmlspecialchars($row["course_id"] . "|" . $row["section_id"] . "|" . $row["semester"] . "|" . $row["year"]); ?>">
+                            <strong>Course ID:</strong> <?php echo htmlspecialchars($row["course_id"]); ?> -
+                            <strong>Section:</strong> <?php echo htmlspecialchars($row["section_id"]); ?> -
+                            <strong>Course Name:</strong> <?php echo htmlspecialchars($row["course_name"]); ?> -
+                            <strong>Semester:</strong> <?php echo htmlspecialchars($row["semester"]); ?> -
+                            <strong>Year:</strong> <?php echo htmlspecialchars($row["year"]); ?> -
+                            <strong>Credits:</strong> <?php echo htmlspecialchars($row["credits"]); ?> -
+                            <strong>Capacity:</strong> <?php echo htmlspecialchars($row["enrolled_count"]); ?> / <?php echo htmlspecialchars($row["capacity"]); ?>
+                        </li>
+                    <?php endwhile; ?>
+                </ul>
+                <button type="submit">Assign Grader</button>
+            <?php else: ?>
+                <p>No available courses found.</p>
+            <?php endif; ?>
+        </form>
+        <a href="student.php?page=home"><button>Back To Dashboard</button></a>
+    <?php endif; ?>
+
+    <!-- Assign Grader Master Section -->
+    <?php if ($page === 'assign_grader_master'): ?>
+        <h1>Assign Master Grader</h1>
+        <h2>Available Courses for Master Grader (Displaying courses with 5 to 10 students enrolled)</h2>
+
+        <form action="admin.php?page=assign_grader_master" method="post">
+            <label for="student_id">Master Student ID:</label>
+            <input type="text" name="student_id" required><br><br>
+
+            <?php if ($result->num_rows > 0): ?>
+                <ul>
+                    <?php while ($row = $result->fetch_assoc()): ?>
+                        <li>
+                            <input type="radio" name="selected_course" value="<?php echo htmlspecialchars($row["course_id"] . "|" . $row["section_id"] . "|" . $row["semester"] . "|" . $row["year"]); ?>">
+                            <strong>Course ID:</strong> <?php echo htmlspecialchars($row["course_id"]); ?> -
+                            <strong>Section:</strong> <?php echo htmlspecialchars($row["section_id"]); ?> -
+                            <strong>Course Name:</strong> <?php echo htmlspecialchars($row["course_name"]); ?> -
+                            <strong>Semester:</strong> <?php echo htmlspecialchars($row["semester"]); ?> -
+                            <strong>Year:</strong> <?php echo htmlspecialchars($row["year"]); ?> -
+                            <strong>Credits:</strong> <?php echo htmlspecialchars($row["credits"]); ?> -
+                            <strong>Capacity:</strong> <?php echo htmlspecialchars($row["enrolled_count"]); ?> / <?php echo htmlspecialchars($row["capacity"]); ?>
+                        </li>
+                    <?php endwhile; ?>
+                </ul>
+                <button type="submit">Assign Grader</button>
+            <?php else: ?>
+                <p>No available courses found.</p>
+            <?php endif; ?>
+        </form>
+        <a href="student.php?page=home"><button>Back To Dashboard</button></a>
+    <?php endif; ?>
 
 
 </body>
