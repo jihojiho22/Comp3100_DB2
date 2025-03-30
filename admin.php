@@ -2,11 +2,15 @@
 session_start();
 require_once 'config&functions.php';
 
-$user_id = $_SESSION['user_id'];
-$user_type = $_SESSION['user_type'];
-$page = isset($_GET['page']) ? $_GET['page'] : null;
+$user_id = $_SESSION['user_id'] ?? null;
+$user_type = $_SESSION['user_type'] ?? null;
+$page = isset($_GET['page']) ? $_GET['page'] : 'home';
 
-require_login();
+// Check if user is logged in and is admin
+if (!$user_id || $user_type !== 'admin') {
+    header('Location: index.html');
+    exit;
+}
 
 $conn = get_db_connection();
 
@@ -286,10 +290,9 @@ FROM (
 ) AS subquery
 WHERE enrolled_count >= 10;";
 $result = $conn->query($sql);
-$conn->close();
 
 // Assign an undergrader grader for a course section
-if ($_SERVER[$_REQUEST_METHOD] === 'POST' && $page === 'assign_grader_undergrad') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'assign_grader_undergrad') {
     $student_id = trim($_POST['student_id']);
     $selected_course = isset($_POST['selected_course']) ? trim($_POST['selected_course']) : null;
 
@@ -347,7 +350,7 @@ if ($_SERVER[$_REQUEST_METHOD] === 'POST' && $page === 'assign_grader_undergrad'
 
 
 // Assign an master student grader for a course section
-if ($_SERVER[$_REQUEST_METHOD] === 'POST' && $page === 'assign_grader_master') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'assign_grader_master') {
     $student_id = trim($_POST['student_id']);
     $selected_course = isset($_POST['selected_course']) ? trim($_POST['selected_course']) : null;
 
