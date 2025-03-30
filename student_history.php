@@ -37,11 +37,8 @@ if ($page === 'course_records' && $user_type === 'instructor') {
         }
         $update_stmt->close();
     }
-
-    // Get instructor ID
     $instructor_id = get_instructor_id($user_id, $conn);
 
-    // Fetch sections taught by this instructor with student info
     $sql = "SELECT s.course_id, s.section_id, s.semester, s.year, 
                    c.course_name, c.credits,
                    t.student_id, t.grade,
