@@ -10,11 +10,11 @@ FAL = "Falmouth Hall"
 PER = "Perry Hall"
 
 building_codes = {
-  OLS: 123456,
-  PER: 592371,
-  LYD: 301739,
-  SHA : 742758,
-  FAL : 513287
+  OLS: 12345,
+  PER: 59237,
+  LYD: 30173,
+  SHA : 74275,
+  FAL : 51328
 }
 
 ACCOUNTS = []
@@ -55,7 +55,7 @@ def create_department(name, location):
     return "INSERT INTO department (dept_name, location) VALUES ('" + name + "', '" + location + "');\n"
 
 def create_time_slot(timeid, days, start_time, end_time):
-    print(timeid)
+    #print(timeid)
     TIMESLOTS.append(timeid)
     r = "INSERT INTO time_slot (time_slot_id, day, start_time, end_time) VALUES ("
     r += "'" + timeid + "', "
@@ -76,12 +76,12 @@ def create_classroom(classroom_id, building_name, room_num, capacity):
 def create_course(course_id, course_name, credits):
     COURSES.append(course_id)
     r = "INSERT INTO course (course_id, course_name, credits) VALUES ("
-    r += "'" + course_id + "', '" + course_name + "', " + str(credits) + ")\n"
+    r += "'" + course_id + "', '" + course_name + "', " + str(credits) + ");\n"
     return r
 
-def make_years(course, sec, sem, s, e, instr, classid, tim, occ):
+def make_years(course, sec, sem, s, e, instr, classid, tim):
     r = ""
-    prefixx = "INSERT INTO section (course_id, section_id, semester, year, instructor_id, classroom_id, time_slot_id, occupancy) VALUES ("
+    prefixx = "INSERT INTO section (course_id, section_id, semester, year, instructor_id, classroom_id, time_slot_id) VALUES ("
     while (s <= e):
         r += prefixx
         r += "'" + course + "', "
@@ -90,8 +90,7 @@ def make_years(course, sec, sem, s, e, instr, classid, tim, occ):
         r += str(s) + ", "
         r += "'" + instr + "', "
         r += str(classid) + ", "
-        r += "'" + tim + "', "
-        r += str(occ) + ");\n"
+        r += "'" + tim + "');\n"
         s += 1
     return r
 
@@ -99,29 +98,74 @@ def make_prereq(course_info, prereq_course_info):
     return "INSERT INTO prereq (course_id, prereq_id) VALUES ('" + course_info[0] + "', '" + prereq_course_info[0] +"');" + "\n"
 
 
+def make_undergrad(student_firstname, student_lastname, dept_name, standing):
+    r = ""
+    student_email = student_firstname + "_" + student_lastname + "@student.uml.edu"
+    if student_email not in STUDENTS:
+        r += make_student(student_firstname, student_lastname, dept_name)
+    r += "INSERT INTO undergraduate (student_id, total_credits, class_standing) VALUES (\'"
+    r += STUDENTS[student_email] + "\', "
+    r += "NULL, \'" + standing + "\');\n"
+    return r
+
+def make_master(student_firstname, student_lastname, dept_name, student_info):
+    r = ""
+    student_email = student_firstname + "_" + student_lastname + "@student.uml.edu"
+    if student_email not in STUDENTS:
+        r += make_student(student_firstname, student_lastname, dept_name)
+    r += "INSERT INTO master (student_id, total_credits) VALUES (\'"
+    r += STUDENTS[student_email] + "\', "
+    r += student_info + ");\n"
+    return r
+
+def make_phd(student_firstname, student_lastname, dept_name, student_info):
+    r = ""
+    student_email = student_firstname + "_" + student_lastname + "@student.uml.edu"
+    if student_email not in STUDENTS:
+        r += make_student(student_firstname, student_lastname, dept_name)
+
+    r += "INSERT INTO phd (student_id, qualifier, proposal_defence_date, dissertation_defence_date) VALUES (\'"
+    r += STUDENTS[student_email] + "\', \'"
+    r += student_info[0] + "\', \'"
+    r += student_info[1] + "\', \'"
+    r += student_info[2] + "\');\n"
+    return r
+
 def make_student(student_firstname, student_lastname, dept_name):
     r = ""
     student_name = student_firstname + " " + student_lastname
-    if student_name not in STUDENTS:
+    student_email = student_firstname + "_" + student_lastname + "@student.uml.edu"
+    if student_email not in ACCOUNTS:
+        r += create_account(student_email, student_lastname + "12345!", "student")
+
+    if student_email not in STUDENTS:
         possible_id = gen_studentID()
         while possible_id in STUDENTS.values():
             possible_id = gen_studentID()
-        STUDENTS[student_name] = possible_id
-        r += "INSERT INTO students (student_id, name, email, dept_name) VALUES (\'"
+        STUDENTS[student_email] = possible_id
+
+        r += "INSERT INTO student (student_id, name, email, dept_name) VALUES (\'"
         r += possible_id + "\', "
         r += "\'" + student_name + "\', "
-        r += "\'" + student_firstname + "_" + student_lastname + "@student.uml.edu\', "
+        r += "\'" + student_email + "\', "
         r += "\'" + dept_name + "\');\n"
+        
     return r
 
 def add_student_to(student_info, course_info, section_id, semester, year, grade):
     r = ""
-    # student_info = [student_firstname, student_lastname, dept_name]
+    # student_info = [student_firstname, student_lastname, dept_name, grad_type, grad_type_info]
     student_name = student_info[0] + " " + student_info[1]
-    if student_name not in STUDENTS:
-        r += make_student(student_info[0], student_info[1], student_info[2])
+    student_email = student_info[0] + "_" + student_info[1] + "@student.uml.edu"
+    if student_email not in STUDENTS:
+        if student_info[3] == "PHD":
+            r += make_phd(student_info[0], student_info[1], student_info[2], student_info[4][0])
+        elif student_info[3] == "MASTERS":
+            r += make_master(student_info[0], student_info[1], student_info[2], student_info[4][0])
+        else:
+            r += make_undergrad(student_info[0], student_info[1], student_info[2], student_info[4][0])
     r += "INSERT INTO take (student_id, course_id, section_id, semester, year, grade) VALUES ("
-    r += "\'" + STUDENTS[student_name] + "\', "
+    r += "\'" + STUDENTS[student_email] + "\', "
     r += "\'" + course_info[0] + "\', "
     r += "\'" + section_id + "\', "
     r += "\'" + semester + "\', "
@@ -157,10 +201,10 @@ def make_section(course_id, course_name, course_credits,
     if time_slot_id not in TIMESLOTS:
         r += create_time_slot(time_slot_id, ts_day, ts_start, ts_end)
     if (_semester == BOTH):
-        r += make_years(course_id, section_id, "Fall", startyear, endyear, instruct_id, classroom_id, time_slot_id, 0)
-        r += make_years(course_id, section_id, "Spring", startyear, endyear, instruct_id, classroom_id, time_slot_id, 0)
+        r += make_years(course_id, section_id, "Fall", startyear, endyear, instruct_id, classroom_id, time_slot_id)
+        r += make_years(course_id, section_id, "Spring", startyear, endyear, instruct_id, classroom_id, time_slot_id)
     else:
-        r += make_years(course_id, section_id, _semester, startyear, endyear, instruct_id, classroom_id, time_slot_id, 0)
+        r += make_years(course_id, section_id, _semester, startyear, endyear, instruct_id, classroom_id, time_slot_id)
 
     return r
 
@@ -264,7 +308,30 @@ INSTRUCTOR_THOA_TRAN = ["Thoa", "Tran", PROFESSOR, "Thoa_Tran@uml.edu"]
 INSTRUCTOR_HOWARD_TROUGHTON = ["Howard", "Troughton", PROFESSOR, "Howard_Troughton@uml.edu"]
 INSTRUCTOR_CARLY_BRIGGS = ["Carly", "Briggs", PROFESSOR, "Carly_Briggs@uml.edu"]
 
-STUDENT_REGGIE_PALMER = ["Reggie", "Palmer", _CS_DEPARTMENT_NAME]
+PHD = "PHD"
+MASTERS = "MASTERS"
+UNDERGRAD = "UNDERGRAD"
+STUDENT_REGGIE_PALMER = ["Reggie", "Palmer", _CS_DEPARTMENT_NAME, UNDERGRAD, ["Freshman"]]
+STUDENT_TOM_SCRAN = ["Tom", "Scran", _CS_DEPARTMENT_NAME, UNDERGRAD, ["Freshman"]]
+STUDENT_MARTHA_LIME = ["Martha", "Lime", _CS_DEPARTMENT_NAME, UNDERGRAD, ["Freshman"]]
+STUDENT_GRANT_FISHER = ["Grant", "Fisher", _CS_DEPARTMENT_NAME, UNDERGRAD, ["Freshman"]]
+STUDENT_BANT_JANE = ["Bant", "Jane", _CS_DEPARTMENT_NAME, UNDERGRAD, ["Freshman"]]
+
+STUDENT_YAN_CRAN = ["Yan", "Cran", _CS_DEPARTMENT_NAME, UNDERGRAD, ["Freshman"]]
+STUDENT_DAKE_LIN = ["Dake", "Lin", _CS_DEPARTMENT_NAME, UNDERGRAD, ["Freshman"]]
+STUDENT_HARRY_TERR = ["Harry", "Terr", _CS_DEPARTMENT_NAME, UNDERGRAD, ["Freshman"]]
+STUDENT_BORRIS_JOHNSON = ["Boris", "Johnson", _CS_DEPARTMENT_NAME, UNDERGRAD, ["Freshman"]]
+STUDENT_MARK_BILLSON = ["Mark", "Billson", _CS_DEPARTMENT_NAME, UNDERGRAD, ["Freshman"]]
+
+STUDENT_CART_FILLSON = ["Cart", "Fillson", _CS_DEPARTMENT_NAME, UNDERGRAD, ["Freshman"]]
+STUDENT_INDI_HUFF = ["Indi", "Huff", _CS_DEPARTMENT_NAME, UNDERGRAD, ["Freshman"]]
+STUDENT_VART_STINKY = ["Vart", "Stinky", _CS_DEPARTMENT_NAME, UNDERGRAD, ["Freshman"]]
+STUDENT_LOIS_ROBERTS = ["Lois", "Roberts", _CS_DEPARTMENT_NAME, UNDERGRAD, ["Freshman"]]
+STUDENT_JAKE_FAKE = ["Jake", "Fake", _CS_DEPARTMENT_NAME, UNDERGRAD, ["Freshman"]]
+
+STUDENT_MASTER_STAN_UPSON = ["Stan", "Upson", _CS_DEPARTMENT_NAME, MASTERS, ["Null"]]
+
+STUDENT_PHD_PHIL_YARDS = ["Phil", "Yards", _CS_DEPARTMENT_NAME, PHD, ["Null", "Null", "Null"]]
 
 SHA_303 = [SHA, "303", 15]
 FAL_209 = [FAL, "209", 15]
@@ -377,7 +444,24 @@ def make_full():
     ])
     full += make_prereq(MATH1320, MATH1310)
 
-    full += add_student_to(STUDENT_REGGIE_PALMER, COMP1010, "101", FALL, 2021, "A")
+    full += add_student_to(STUDENT_REGGIE_PALMER, COMP1010, "102", SPRING, 2024, "A")
+    full += add_student_to(STUDENT_TOM_SCRAN, COMP1010, "102", SPRING, 2024, "A")
+    full += add_student_to(STUDENT_MARTHA_LIME, COMP1010, "102", SPRING, 2024, "A")
+    full += add_student_to(STUDENT_GRANT_FISHER, COMP1010, "102", SPRING, 2024, "A")
+    full += add_student_to(STUDENT_BANT_JANE, COMP1010, "102", SPRING, 2024, "A")
+
+    full += add_student_to(STUDENT_YAN_CRAN, COMP1010, "102", SPRING, 2024, "A")
+    full += add_student_to(STUDENT_DAKE_LIN, COMP1010, "102", SPRING, 2024, "A")
+    full += add_student_to(STUDENT_HARRY_TERR, COMP1010, "102", SPRING, 2024, "A")
+    full += add_student_to(STUDENT_BORRIS_JOHNSON, COMP1010, "102", SPRING, 2024, "A")
+    full += add_student_to(STUDENT_MARK_BILLSON, COMP1010, "102", SPRING, 2024, "A")
+    
+    full += add_student_to(STUDENT_CART_FILLSON, COMP1010, "102", SPRING, 2024, "A")
+    full += add_student_to(STUDENT_INDI_HUFF, COMP1010, "102", SPRING, 2024, "A")
+    full += add_student_to(STUDENT_VART_STINKY, COMP1010, "102", SPRING, 2024, "A")
+    full += add_student_to(STUDENT_LOIS_ROBERTS, COMP1010, "102", SPRING, 2024, "A")
+    full += add_student_to(STUDENT_JAKE_FAKE, COMP1010, "102", SPRING, 2024, "A")
+
     print(full)
 
 make_full()
