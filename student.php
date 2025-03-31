@@ -15,13 +15,6 @@ $success_message = $_SESSION['success_message'] ?? '';
 $user_id = $_SESSION['user_id'] ?? null;
 $user_type = $_SESSION['user_type'] ?? null;
 
-// Check if user is logged in
-if (!$user_id) {
-    header('Location: index.html');
-    exit;
-}
-
-// Fetch the student_id for the current user if the user type is 'student'
 $student_id = null;
 if ($user_type === 'student') {
     $student_id = get_student_id($user_id, $conn);
