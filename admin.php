@@ -326,6 +326,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'assign_grader_undergrad'
         exit();
     } 
 
+    // check if undergrad has at least an A- in the course
+    $check_undergrad = 
+        "SELECT *
+        FROM take
+        WHERE student_id = ? AND course_id = ? AND (grade = 'A+' OR grade = 'A' OR grade = 'A-')";
+    $stmt = $conn->prepare($check_undergrad);
+    if (!$stmt) {
+        die("Error preparing statement: " . $conn->error);
+    }
+
+    $stmt->bind_param("ss", $student_id, $course_id);
+    $stmt->execute();
+    $result_undergrad = $stmt->get_result();
+
+    if ($result_undergrad->num_rows <= 0) {
+        $_SESSION['error_message'] = "Undergrad student does not have at least an A- in this course.";
+        header("Location: admin.php?page=assign_grader_undergrad");
+        exit();
+    } 
+    
     // Insert into undergraduateGrader table
     $insert_undergrad = 
         "INSERT INTO undergraduateGrader (student_id, course_id, section_id, semester, year)
@@ -380,6 +400,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'assign_grader_master') {
 
     if ($result_master->num_rows > 0) {
         $_SESSION['error_message'] = "Masters student is already assigned as a grader for another section.";
+        header("Location: admin.php?page=assign_grader_master");
+        exit();
+    } 
+
+    // check if master has at least an A- in the course
+    $check_master = 
+        "SELECT *
+        FROM take
+        WHERE student_id = ? AND course_id = ? AND (grade = 'A+' OR grade = 'A' OR grade = 'A-')";
+    $stmt = $conn->prepare($check_master);
+    if (!$stmt) {
+        die("Error preparing statement: " . $conn->error);
+    }
+
+    $stmt->bind_param("ss", $student_id, $course_id);
+    $stmt->execute();
+    $result_master = $stmt->get_result();
+
+    if ($result_master->num_rows <= 0) {
+        $_SESSION['error_message'] = "Masters student does not have at least an A- in this course.";
         header("Location: admin.php?page=assign_grader_master");
         exit();
     } 
