@@ -31,6 +31,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'add_course') {
         exit();
     }
 
+    // check if the course_id already exists
+    $check_exitst = 
+        "SELECT *
+        FROM course
+        WHERE course_id = ?";
+    $stmt = $conn->prepare($check_exitst);
+    if (!$stmt) {
+        die("Error preparing statement: " . $conn->error);
+    }
+    $stmt->bind_param("s", $course_id);
+    $stmt->execute();
+    $result_exists = $stmt->get_result();
+
+    if ($result_exists->num_rows > 0) {
+        $_SESSION['error_message'] = "Course id already exists.";
+        header("Location: admin.php?page=add_course");
+        exit();
+    } 
 
     // Insert new course into database
     $insert_course = "INSERT INTO course (course_id, course_name, credits) VALUES (?, ?, ?)";
@@ -211,6 +229,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'appoint_advisor') {
     // Validate inputs
     if (empty($instructor_id) || empty($student_id) || empty($start_date)  || empty($end_date)) {
         $_SESSION['error_message'] = "Instructor, student, start date, and end date are required.";
+        header("Location: admin.php?page=appoint_advisor");
+        exit();
+    }
+
+    // Check if the student ID exists in the PhD table
+    $check_phd = "SELECT * FROM phd WHERE student_id = ?";
+    $stmt = $conn->prepare($check_phd);
+    if (!$stmt) {
+        die("Error preparing statement: " . $conn->error);
+    }
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $result_phd = $stmt->get_result();
+
+    if ($result_phd->num_rows <= 0) {
+        $_SESSION['error_message'] = "Invalid PhD student ID.";
+        header("Location: admin.php?page=appoint_advisor");
+        exit();
+    }
+
+    // Check if student Id has more than two advisors
+    $check_phd = "SELECT * FROM advise where student_id = ?";
+    $stmt = $conn->prepare($check_phd);
+    if (!$stmt) {
+        die("SQL Error: " . $conn->error);
+    }
+    $stmt->bind_param("s", $student_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows >= 2) {
+        $_SESSION['error_message'] = "PhD student already has two advisors.";
+        header("Location: admin.php?page=appoint_advisor");
+        exit();
+    }
+
+    // Check if instructor is already advisor to student
+    $check_phd = "SELECT * FROM advise where student_id = ? AND instructor_id = ?";
+    $stmt = $conn->prepare($check_phd);
+    if (!$stmt) {
+        die("SQL Error: " . $conn->error);
+    }
+    $stmt->bind_param("ss", $student_id, $instructor_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        $_SESSION['error_message'] = "PhD student already has this instructor as advisor.";
         header("Location: admin.php?page=appoint_advisor");
         exit();
     }
