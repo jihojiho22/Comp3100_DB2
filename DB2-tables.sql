@@ -726,3 +726,5 @@ INSERT INTO account (email, password, type) VALUES ('Jake_Fake@student.uml.edu',
 INSERT INTO student (student_id, name, email, dept_name) VALUES ('5482853754', 'Jake Fake', 'Jake_Fake@student.uml.edu', 'Miner School of Computer & Information Sciences');
 INSERT INTO undergraduate (student_id, total_credits, class_standing) VALUES ('5482853754', NULL, 'Freshman');
 INSERT INTO take (student_id, course_id, section_id, semester, year, grade) VALUES ('5482853754', 'COMP1010', '102', 'Spring', 2024, 'A');
+
+insert into account (email, password, type) values ('admin@uml.edu', '123456', 'admin');
