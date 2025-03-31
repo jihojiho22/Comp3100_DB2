@@ -310,13 +310,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'assign_grader_undergrad'
     $check_undergrad = 
         "SELECT *
         FROM undergraduateGrader
-        WHERE student_id = ? AND course_id = ?";
+        WHERE student_id = ?;
     $stmt = $conn->prepare($check_undergrad);
     if (!$stmt) {
         die("Error preparing statement: " . $conn->error);
     }
 
-    $stmt->bind_param("ss", $student_id, $course_id);
+    $stmt->bind_param("ss", $student_id);
     $stmt->execute();
     $result_undergrad = $stmt->get_result();
 
@@ -388,13 +388,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'assign_grader_master') {
     $check_master = 
         "SELECT *
         FROM masterGrader
-        WHERE student_id = ? AND course_id = ?";
+        WHERE student_id = ?";
     $stmt = $conn->prepare($check_master);
     if (!$stmt) {
         die("Error preparing statement: " . $conn->error);
     }
 
-    $stmt->bind_param("ss", $student_id, $course_id);
+    $stmt->bind_param("ss", $student_id);
     $stmt->execute();
     $result_master = $stmt->get_result();
 
