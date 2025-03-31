@@ -31,6 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'add_course') {
         exit();
     }
 
+
     // Insert new course into database
     $insert_course = "INSERT INTO course (course_id, course_name, credits) VALUES (?, ?, ?)";
     $stmt = $conn->prepare($insert_course);
@@ -112,6 +113,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'assign_section') {
     
     // Convert classroom_id to string format
     $classroom_id = strval($classroom_id);
+
+
+    // check if the section for the course already exists
+    $check_exitst = 
+        "SELECT *
+        FROM section
+        WHERE course_id = ? AND section_id = ? AND semester = ? AND year = ?";
+    $stmt = $conn->prepare($check_exitst);
+    if (!$stmt) {
+        die("Error preparing statement: " . $conn->error);
+    }
+
+    $stmt->bind_param("ssss", $course_id, $section_id, $semester, $year);
+    $stmt->execute();
+    $result_exists = $stmt->get_result();
+
+    if ($result_exists->num_rows > 0) {
+        $_SESSION['error_message'] = "Section id already exists for course.";
+        header("Location: admin.php?page=assign_section");
+        exit();
+    } 
 
     // Insert new section
     $insert_section = "INSERT INTO section (course_id, section_id, semester, year, instructor_id, classroom_id, time_slot_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -310,13 +332,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'assign_grader_undergrad'
     $check_undergrad = 
         "SELECT *
         FROM undergraduateGrader
-        WHERE student_id = ?;
+        WHERE student_id = ? AND course_id = ?";
     $stmt = $conn->prepare($check_undergrad);
     if (!$stmt) {
         die("Error preparing statement: " . $conn->error);
     }
 
-    $stmt->bind_param("ss", $student_id);
+    $stmt->bind_param("ss", $student_id, $course_id);
     $stmt->execute();
     $result_undergrad = $stmt->get_result();
 
@@ -388,13 +410,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'assign_grader_master') {
     $check_master = 
         "SELECT *
         FROM masterGrader
-        WHERE student_id = ?";
+        WHERE student_id = ? AND course_id = ?";
     $stmt = $conn->prepare($check_master);
     if (!$stmt) {
         die("Error preparing statement: " . $conn->error);
     }
 
-    $stmt->bind_param("ss", $student_id);
+    $stmt->bind_param("ss", $student_id, $course_id);
     $stmt->execute();
     $result_master = $stmt->get_result();
 
