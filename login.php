@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'config&functions.php';
+require_once 'config_functions.php';
 
 // Check if the user is already logged in
 if (isset($_SESSION['user_id'])) {
