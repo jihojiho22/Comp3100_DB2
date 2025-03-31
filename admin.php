@@ -308,7 +308,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'assign_grader_undergrad'
 
     // Check if student is undergrad student is a grader in any other secion
     $check_undergrad = 
-        "SELECT student_id, course_id
+        "SELECT *
         FROM undergraduateGrader
         WHERE student_id = ? AND course_id = ?";
     $stmt = $conn->prepare($check_undergrad);
@@ -316,7 +316,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'assign_grader_undergrad'
         die("Error preparing statement: " . $conn->error);
     }
 
-    $stmt->bind_param("ss", $student_id, $section_id);
+    $stmt->bind_param("ss", $student_id, $course_id);
     $stmt->execute();
     $result_undergrad = $stmt->get_result();
 
@@ -386,7 +386,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'assign_grader_master') {
 
     // Check if student is master student is a grader in any other secion
     $check_master = 
-        "SELECT student_id, course_id
+        "SELECT *
         FROM masterGrader
         WHERE student_id = ? AND course_id = ?";
     $stmt = $conn->prepare($check_master);
@@ -394,7 +394,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $page === 'assign_grader_master') {
         die("Error preparing statement: " . $conn->error);
     }
 
-    $stmt->bind_param("ss", $student_id, $section_id);
+    $stmt->bind_param("ss", $student_id, $course_id);
     $stmt->execute();
     $result_master = $stmt->get_result();
 
