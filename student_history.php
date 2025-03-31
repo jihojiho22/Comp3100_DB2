@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'config&functions.php';
+require_once 'config_functions.php';
 
 require_login();
 
@@ -15,7 +15,7 @@ $user_id = $_SESSION['user_id'];
 $user_type = $_SESSION['user_type'];
 
 if ($page === 'course_records' && $user_type === 'instructor') {
-    // Handle grade submission
+    // Handle grade submission  
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_grade'])) {
         $student_id = $_POST['student_id'];
         $course_id = $_POST['course_id'];

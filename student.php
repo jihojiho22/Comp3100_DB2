@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'config&functions.php';
+require_once 'config_functions.php';
 
 // Default page is 'home' if no parameter is passed
 $page = isset($_GET['page']) ? $_GET['page'] : 'home';

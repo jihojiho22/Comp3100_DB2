@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'config&functions.php';
+require_once 'config_functions.php';
 
 $user_id = $_SESSION['user_id'] ?? null;
 $user_type = $_SESSION['user_type'] ?? null;
