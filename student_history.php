@@ -1,7 +1,7 @@
 <?php
 session_start();
-require_once 'config&functions.php';
 
+require_once 'config_functions.php';
 require_login();
 
 $conn = get_db_connection();

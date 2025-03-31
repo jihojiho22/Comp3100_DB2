@@ -1,7 +1,7 @@
 <?php
 session_start();
-require_once 'config&functions.php';
 
+require_once 'config_functions.php';
 // Require login to access this page
 require_login();
 
@@ -33,8 +33,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
     $section_id = $_POST['section_id'];
     $semester = $_POST['semester'];
     $year = $_POST['year'];
-
-    // Start transaction
     $conn->begin_transaction();
 
     try {

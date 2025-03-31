@@ -1,6 +1,7 @@
 <?php
 session_start();
-require_once 'config&functions.php';
+
+require_once 'config_functions.php';
 
 // Default page is 'home' if no parameter is passed
 $page = isset($_GET['page']) ? $_GET['page'] : 'home';
@@ -13,6 +14,12 @@ $success_message = $_SESSION['success_message'] ?? '';
 
 $user_id = $_SESSION['user_id'] ?? null;
 $user_type = $_SESSION['user_type'] ?? null;
+
+// Check if user is logged in
+if (!$user_id) {
+    header('Location: index.html');
+    exit;
+}
 
 // Fetch the student_id for the current user if the user type is 'student'
 $student_id = null;
@@ -31,8 +38,6 @@ $result = $conn->query("SELECT dept_name FROM department");
 while ($row = $result->fetch_assoc()) {
     $departments[] = $row['dept_name'];
 }
-
-
 
 // Handle password update submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_password'])) {
