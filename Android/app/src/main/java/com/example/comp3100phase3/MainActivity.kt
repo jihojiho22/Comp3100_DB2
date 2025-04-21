@@ -10,6 +10,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,6 +30,15 @@ import retrofit2.converter.gson.GsonConverterFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import com.google.gson.Gson
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.clickable
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,17 +46,53 @@ class MainActivity : ComponentActivity() {
         setContent {
             COMP3100Phase3Theme {
                 var currentScreen by remember { mutableStateOf("login") }
+                var currentUser by remember { mutableStateOf<User?>(null) }
                 
                 when (currentScreen) {
                     "login" -> LoginScreen(
                         onNavigateToCreateAccount = { currentScreen = "create" },
-                        onNavigateToDashboard = { currentScreen = "dashboard" }
+                        onNavigateToDashboard = { user -> 
+                            currentUser = user
+                            currentScreen = "dashboard" 
+                        }
                     )
                     "create" -> CreateAccountScreen(
                         onNavigateToLogin = { currentScreen = "login" }
                     )
                     "dashboard" -> DashboardScreen(
-                        onNavigateToLogin = { currentScreen = "login" }
+                        onNavigateToLogin = { 
+                            currentUser = null
+                            currentScreen = "login" 
+                        },
+                        onNavigateToCourseRegistration = { currentScreen = "courseRegistration" },
+                        onNavigateToMyCourses = { currentScreen = "myCourses" },
+                        user = currentUser ?: User(
+                            email = "",
+                            type = "student",
+                            student_id = null,
+                            name = null,
+                            dept_name = null
+                        )
+                    )
+                    "courseRegistration" -> CourseRegistrationScreen(
+                        onNavigateToDashboard = { currentScreen = "dashboard" },
+                        user = currentUser ?: User(
+                            email = "",
+                            type = "student",
+                            student_id = null,
+                            name = null,
+                            dept_name = null
+                        )
+                    )
+                    "myCourses" -> MyCoursesScreen(
+                        onNavigateToDashboard = { currentScreen = "dashboard" },
+                        user = currentUser ?: User(
+                            email = "",
+                            type = "student",
+                            student_id = null,
+                            name = null,
+                            dept_name = null
+                        )
                     )
                 }
             }
@@ -57,7 +103,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun LoginScreen(
     onNavigateToCreateAccount: () -> Unit,
-    onNavigateToDashboard: () -> Unit
+    onNavigateToDashboard: (User) -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -143,7 +189,7 @@ fun LoginScreen(
 
                             val apiService = retrofit.create(ApiService::class.java)
                             println("Making login request with email: $email, password: $password")
-                            val request = AccountRequest("login", email, password)
+                            val request = AccountRequest("login", email, "", password)
                             println("Login request: $request")
                             println("Login request JSON: ${Gson().toJson(request)}")
                             
@@ -159,7 +205,26 @@ fun LoginScreen(
                                     println("Login result: $result")
                                     if (result?.success == true) {
                                         Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
-                                        onNavigateToDashboard()
+                                        println("Login Response - student_id: ${result.student_id}")
+                                        println("Login Response - email: ${result.email}")
+                                        println("Login Response - name: ${result.name}")
+                                        println("Login Response - type: ${result.type}")
+                                        println("Login Response - dept_name: ${result.dept_name}")
+                                        
+                                        val user = User(
+                                            email = result.email ?: email,
+                                            type = result.type ?: "student",
+                                            student_id = result.student_id,
+                                            name = result.name,
+                                            dept_name = result.dept_name
+                                        )
+                                        println("Created User - student_id: ${user.student_id}")
+                                        println("Created User - email: ${user.email}")
+                                        println("Created User - name: ${user.name}")
+                                        println("Created User - type: ${user.type}")
+                                        println("Created User - dept_name: ${user.dept_name}")
+                                        
+                                        onNavigateToDashboard(user)
                                     } else {
                                         errorMessage = result?.message ?: "Login failed"
                                     }
@@ -206,6 +271,7 @@ fun LoginScreen(
 @Composable
 fun CreateAccountScreen(onNavigateToLogin: () -> Unit) {
     var email by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var selectedDegree by remember { mutableStateOf("") }
@@ -230,6 +296,15 @@ fun CreateAccountScreen(onNavigateToLogin: () -> Unit) {
             value = email,
             onValueChange = { email = it },
             label = { Text("Email") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Name") },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -295,7 +370,7 @@ fun CreateAccountScreen(onNavigateToLogin: () -> Unit) {
 
         Button(
             onClick = {
-                if (email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() || selectedDegree.isEmpty()) {
+                if (email.isEmpty() || name.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() || selectedDegree.isEmpty()) {
                     errorMessage = "Please fill all fields"
                     return@Button
                 }
@@ -318,7 +393,14 @@ fun CreateAccountScreen(onNavigateToLogin: () -> Unit) {
 
                         val apiService = retrofit.create(ApiService::class.java)
                         val response = apiService.createAccount(
-                            AccountRequest("create", email, password, selectedDegree)
+                            AccountRequest(
+                                action = "create", 
+                                email = email, 
+                                name = name, 
+                                password = password, 
+                                type = "student",
+                                dept_name = "Computer Science"
+                            )
                         )
 
                         withContext(Dispatchers.Main) {
@@ -383,7 +465,12 @@ fun PreviewCreateAccountScreen() {
 }
 
 @Composable
-fun DashboardScreen(onNavigateToLogin: () -> Unit) {
+fun DashboardScreen(
+    onNavigateToLogin: () -> Unit,
+    onNavigateToCourseRegistration: () -> Unit,
+    onNavigateToMyCourses: () -> Unit,
+    user: User
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -397,24 +484,49 @@ fun DashboardScreen(onNavigateToLogin: () -> Unit) {
             modifier = Modifier.padding(bottom = 24.dp)
         )
         
-
-        Text(
-            text = "Welcome to your dashboard!",
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        
-
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(bottom = 16.dp)
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "View Course",
+                    text = "Student Information",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Text(
+                    text = "Name: ${user.name ?: "N/A"}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = "Student ID: ${user.student_id ?: "N/A"}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = "Email: ${user.email}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = "Department: ${user.dept_name ?: "N/A"}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        }
+        
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+                .clickable { onNavigateToMyCourses() }
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "My Courses",
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
@@ -428,6 +540,7 @@ fun DashboardScreen(onNavigateToLogin: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
+                .clickable { onNavigateToCourseRegistration() }
         ) {
             Column(
                 modifier = Modifier.padding(16.dp)
@@ -453,3 +566,475 @@ fun DashboardScreen(onNavigateToLogin: () -> Unit) {
         }
     }
 }
+
+@Composable
+fun CourseRegistrationScreen(
+    onNavigateToDashboard: () -> Unit,
+    user: User
+) {
+    var sections by remember { mutableStateOf<List<Section>>(emptyList()) }
+    var registrations by remember { mutableStateOf<List<Registration>>(emptyList()) }
+    var waitlistEntries by remember { mutableStateOf<List<WaitlistEntry>>(emptyList()) }
+    var selectedSection by remember { mutableStateOf<Section?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var registrationSuccess by remember { mutableStateOf(false) }
+    var dropSuccess by remember { mutableStateOf(false) }
+    var waitlistSuccess by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    // Load sections and registrations when the screen is first displayed
+    LaunchedEffect(Unit) {
+        isLoading = true
+        try {
+            // Load available sections
+            val sectionsResponse = ApiService.api.getAvailableSections("section")
+            if (sectionsResponse.isSuccessful) {
+                val result = sectionsResponse.body()
+                if (result?.success == true) {
+                    sections = result.sections
+                } else {
+                    errorMessage = result?.message ?: "Failed to load sections"
+                }
+            } else {
+                errorMessage = "Failed to load sections: ${sectionsResponse.code()}"
+            }
+
+            // Load registrations if student_id is available
+            if (user.student_id != null && !user.student_id.isNullOrEmpty()) {
+                val registrationsResponse = ApiService.api.getRegistrations(mapOf(
+                    "action" to "get_registrations",
+                    "student_id" to (user.student_id ?: "")
+                ))
+                if (registrationsResponse.isSuccessful) {
+                    val result = registrationsResponse.body()
+                    if (result?.success == true) {
+                        registrations = result.registrations ?: emptyList()
+                    }
+                }
+                
+                // Load waitlist entries
+                val waitlistResponse = ApiService.api.getWaitlist(mapOf(
+                    "action" to "get_waitlist",
+                    "student_id" to user.student_id
+                ))
+                if (waitlistResponse.isSuccessful) {
+                    val result = waitlistResponse.body()
+                    if (result?.success == true) {
+                        waitlistEntries = result.waitlist ?: emptyList()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            errorMessage = "Error: ${e.message}"
+        } finally {
+            isLoading = false
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Course Registration",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .size(50.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
+        } else if (errorMessage != null) {
+            Text(
+                text = errorMessage!!,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        } else if (registrationSuccess) {
+            Text(
+                text = "Successfully registered for the course!",
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        } else if (dropSuccess) {
+            Text(
+                text = "Successfully dropped the course!",
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        } else if (waitlistSuccess != null) {
+            Text(
+                text = waitlistSuccess ?: "",
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
+
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
+            items(sections) { section ->
+                // Check if the student is registered for this section
+                val isRegistered = registrations.any { reg -> 
+                    reg.course_id == section.course_id && 
+                    reg.section_id == section.section_id &&
+                    reg.semester == section.semester &&
+                    reg.year == section.year
+                }
+                
+                // Check if the student is waitlisted for this section
+                val isWaitlisted = waitlistEntries.any { entry -> 
+                    entry.course_id == section.course_id && 
+                    entry.section_id == section.section_id &&
+                    entry.semester == section.semester &&
+                    entry.year == section.year
+                }
+                
+                // Get waitlist position if waitlisted
+                val waitlistPosition = if (isWaitlisted) {
+                    waitlistEntries.find { entry -> 
+                        entry.course_id == section.course_id && 
+                        entry.section_id == section.section_id &&
+                        entry.semester == section.semester &&
+                        entry.year == section.year
+                    }?.waitlist_position
+                } else null
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .clickable { selectedSection = section }
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Course: ${section.course_id}",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = "Section: ${section.section_id}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "Semester: ${section.semester} ${section.year}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "Classroom: ${section.classroom_id}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "Instructor: ${section.instructor_id}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "Capacity: ${section.capacity}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        
+                        // Display waitlist information
+                        if (section.waitlist_count != null && section.waitlist_count.toIntOrNull() ?: 0 > 0) {
+                            Text(
+                                text = "Students on Waitlist: ${section.waitlist_count.toIntOrNull() ?: 0}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                        
+                        // Only show Drop button if the student is registered for this course
+                        if (isRegistered && user.student_id != null && !user.student_id.isNullOrEmpty()) {
+                            Button(
+                                onClick = {
+                                    if (user.student_id.isNullOrEmpty()) {
+                                        errorMessage = "Student ID not available. Please contact support."
+                                        return@Button
+                                    }
+                                    
+                                    isLoading = true
+                                    val request = CourseDropRequest(
+                                        student_id = user.student_id,
+                                        course_id = section.course_id,
+                                        section_id = section.section_id,
+                                        semester = section.semester,
+                                        year = section.year
+                                    )
+                                    
+                                    scope.launch {
+                                        try {
+                                            val response = ApiService.api.dropCourse(request)
+                                            if (response.isSuccessful) {
+                                                val result = response.body()
+                                                if (result?.success == true) {
+                                                    dropSuccess = true
+                                                    errorMessage = null
+                                                    
+                                                    // Reload sections and registrations after successful drop
+                                                    delay(1000) // Wait for 1 second to show success message
+                                                    
+                                                    // Reload sections
+                                                    val sectionsResponse = ApiService.api.getAvailableSections("section")
+                                                    if (sectionsResponse.isSuccessful) {
+                                                        val sectionsResult = sectionsResponse.body()
+                                                        if (sectionsResult?.success == true) {
+                                                            sections = sectionsResult.sections
+                                                        }
+                                                    }
+                                                    
+                                                    // Reload registrations
+                                                    val registrationsResponse = ApiService.api.getRegistrations(mapOf(
+                                                        "action" to "get_registrations",
+                                                        "student_id" to (user.student_id ?: "")
+                                                    ))
+                                                    if (registrationsResponse.isSuccessful) {
+                                                        val registrationsResult = registrationsResponse.body()
+                                                        if (registrationsResult?.success == true) {
+                                                            registrations = registrationsResult.registrations ?: emptyList()
+                                                        }
+                                                    }
+                                                    
+                                                    // Reload waitlist entries
+                                                    val waitlistResponse = ApiService.api.getWaitlist(mapOf(
+                                                        "action" to "get_waitlist",
+                                                        "student_id" to user.student_id
+                                                    ))
+                                                    if (waitlistResponse.isSuccessful) {
+                                                        val waitlistResult = waitlistResponse.body()
+                                                        if (waitlistResult?.success == true) {
+                                                            waitlistEntries = waitlistResult.waitlist ?: emptyList()
+                                                        }
+                                                    }
+                                                    
+                                                    // Reset success flags after reloading data
+                                                    dropSuccess = false
+                                                    registrationSuccess = false
+                                                    waitlistSuccess = null
+                                                    
+                                                    // Reload sections to update waitlist counts
+                                                    try {
+                                                        val sectionsResponse = ApiService.api.getAvailableSections("section")
+                                                        if (sectionsResponse.isSuccessful) {
+                                                            val result = sectionsResponse.body()
+                                                            if (result?.success == true) {
+                                                                sections = result.sections
+                                                            }
+                                                        }
+                                                    } catch (e: Exception) {
+                                                        errorMessage = "Error reloading sections: ${e.message}"
+                                                    }
+                                                } else {
+                                                    errorMessage = result?.message ?: "Failed to drop course"
+                                                }
+                                            } else {
+                                                errorMessage = "Failed to drop course: ${response.code()}"
+                                            }
+                                        } catch (e: Exception) {
+                                            errorMessage = "Error: ${e.message}"
+                                        } finally {
+                                            isLoading = false
+                                        }
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                            ) {
+                                Text("Drop Course")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Button(
+                onClick = onNavigateToDashboard,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp)
+            ) {
+                Text(text = "Back to Dashboard")
+            }
+
+            if (selectedSection != null && !registrationSuccess && !dropSuccess && waitlistSuccess == null) {
+                // Check if the selected section is already registered
+                val isAlreadyRegistered = registrations.any { reg -> 
+                    reg.course_id == selectedSection?.course_id && 
+                    reg.section_id == selectedSection?.section_id &&
+                    reg.semester == selectedSection?.semester &&
+                    reg.year == selectedSection?.year
+                }
+                
+                // Check if the selected section is already waitlisted
+                val isAlreadyWaitlisted = waitlistEntries.any { entry -> 
+                    entry.course_id == selectedSection?.course_id && 
+                    entry.section_id == selectedSection?.section_id &&
+                    entry.semester == selectedSection?.semester &&
+                    entry.year == selectedSection?.year
+                }
+                
+                // Only show Register/Join Waitlist button if not already registered or waitlisted
+                if (!isAlreadyRegistered && !isAlreadyWaitlisted) {
+                    Button(
+                        onClick = {
+                            if (user.student_id.isNullOrEmpty()) {
+                                errorMessage = "Student ID not available. Please contact support."
+                                return@Button
+                            }
+                            
+                            isLoading = true
+                            val request = CourseRegisterRequest(
+                                student_id = user.student_id,
+                                course_id = selectedSection?.course_id ?: "",
+                                section_id = selectedSection?.section_id ?: "",
+                                semester = selectedSection?.semester ?: "",
+                                year = selectedSection?.year ?: "",
+                                join_waitlist = selectedSection?.capacity?.toIntOrNull() == 0
+                            )
+                            
+                            scope.launch {
+                                try {
+                                    val response = ApiService.api.registerForCourse(request)
+                                    if (response.isSuccessful) {
+                                        val result = response.body()
+                                        if (result?.success == true) {
+                                            if (request.join_waitlist) {
+                                                waitlistSuccess = "Successfully added to the waitlist!"
+                                            } else {
+                                                registrationSuccess = true
+                                            }
+                                            errorMessage = null
+                                            
+                                            // Reload sections and registrations after successful registration/waitlist
+                                            delay(1000) // Wait for 1 second to show success message
+                                            
+                                            // Reload sections
+                                            val sectionsResponse = ApiService.api.getAvailableSections("section")
+                                            if (sectionsResponse.isSuccessful) {
+                                                val sectionsResult = sectionsResponse.body()
+                                                if (sectionsResult?.success == true) {
+                                                    sections = sectionsResult.sections
+                                                }
+                                            }
+                                            
+                                            // Reload registrations
+                                            val registrationsResponse = ApiService.api.getRegistrations(mapOf(
+                                                "action" to "get_registrations",
+                                                "student_id" to (user.student_id ?: "")
+                                            ))
+                                            if (registrationsResponse.isSuccessful) {
+                                                val registrationsResult = registrationsResponse.body()
+                                                if (registrationsResult?.success == true) {
+                                                    registrations = registrationsResult.registrations ?: emptyList()
+                                                }
+                                            }
+                                            
+                                            // Reload waitlist entries
+                                            val waitlistResponse = ApiService.api.getWaitlist(mapOf(
+                                                "action" to "get_waitlist",
+                                                "student_id" to (user.student_id ?: "")
+                                            ))
+                                            if (waitlistResponse.isSuccessful) {
+                                                val waitlistResult = waitlistResponse.body()
+                                                if (waitlistResult?.success == true) {
+                                                    waitlistEntries = waitlistResult.waitlist ?: emptyList()
+                                                }
+                                            }
+                                            
+                                            // Reset success flags after reloading data
+                                            dropSuccess = false
+                                            registrationSuccess = false
+                                            waitlistSuccess = null
+                                            
+                                            // Reload sections to update waitlist counts
+                                            try {
+                                                val sectionsResponse = ApiService.api.getAvailableSections("section")
+                                                if (sectionsResponse.isSuccessful) {
+                                                    val result = sectionsResponse.body()
+                                                    if (result?.success == true) {
+                                                        sections = result.sections
+                                                    }
+                                                }
+                                            } catch (e: Exception) {
+                                                errorMessage = "Error reloading sections: ${e.message}"
+                                            }
+                                        } else {
+                                            errorMessage = result?.message ?: "Registration failed"
+                                        }
+                                    } else {
+                                        errorMessage = "Registration failed: ${response.code()}"
+                                    }
+                                } catch (e: Exception) {
+                                    errorMessage = "Error: ${e.message}"
+                                } finally {
+                                    isLoading = false
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 8.dp)
+                    ) {
+                        Text(text = if (selectedSection?.capacity?.toIntOrNull() == 0) "Join Waitlist" else "Register")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun MyCoursesScreen(
+    onNavigateToDashboard: () -> Unit,
+    user: User
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "My Courses",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
+        
+        Text(
+            text = "This feature is currently under maintenance.",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
+        Text(
+            text = "Please use the Course Registration screen to manage your courses.",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(bottom = 32.dp)
+        )
+        
+        Button(
+            onClick = onNavigateToDashboard,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = "Back to Dashboard")
+        }
+    }
+}
+
+
