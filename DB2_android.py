@@ -18,13 +18,13 @@ def add_student(fname, lname, dept_name):
     r = add_account(email, (lname + "12345!"), "student")
     r += "INSERT INTO student(student_id, name, email, dept_name) VALUES("
     _id = (randint(1000000000, 9999999999))
-    while (_id in STUDENTS.values()):
-        _id = (randint(1000000000, 9999999999))
-    r += "'" + str(_id) + "', "
+    while (("S"+str(_id)) in STUDENTS.values()):
+        _id = (randint(100000000, 999999999))
+    r += "'S" + str(_id) + "', "
     r += "'" + fname + " " + lname + "', "
     r += "'" + email + "', "
     r += "'" + dept_name + "');\n"
-    STUDENTS[email] = str(_id)
+    STUDENTS[email] = "S" + str(_id)
     return r
     
 #student_info = [email, fname, lname, dept_name]
@@ -100,4 +100,4 @@ input_students = [
     INDI_HUFF   
 ]
 
-print(add_takes_all(input_students, COURSE, SECTION, SEM, YEAR, GRADE_NULL))  
+print(add_takes_all(input_students, COURSE, SECTION, SEM, YEAR, GRADE_NULL))
