@@ -70,6 +70,7 @@ class MainActivity : ComponentActivity() {
                             email = "",
                             type = "student",
                             student_id = null,
+                            instructor_id = null,
                             name = null,
                             dept_name = null
                         )
@@ -80,6 +81,7 @@ class MainActivity : ComponentActivity() {
                             email = "",
                             type = "student",
                             student_id = null,
+                            instructor_id = null,
                             name = null,
                             dept_name = null
                         )
@@ -90,6 +92,7 @@ class MainActivity : ComponentActivity() {
                             email = "",
                             type = "student",
                             student_id = null,
+                            instructor_id = null,
                             name = null,
                             dept_name = null
                         )
@@ -206,19 +209,23 @@ fun LoginScreen(
                                     if (result?.success == true) {
                                         Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
                                         println("Login Response - student_id: ${result.student_id}")
+                                        println("Login Response - instructor_id: ${result.instructor_id}")
                                         println("Login Response - email: ${result.email}")
                                         println("Login Response - name: ${result.name}")
                                         println("Login Response - type: ${result.type}")
                                         println("Login Response - dept_name: ${result.dept_name}")
+                                        println("Login Response - title: ${result.title}")
                                         
                                         val user = User(
                                             email = result.email ?: email,
                                             type = result.type ?: "student",
                                             student_id = result.student_id,
+                                            instructor_id = result.instructor_id,
                                             name = result.name,
                                             dept_name = result.dept_name
                                         )
                                         println("Created User - student_id: ${user.student_id}")
+                                        println("Created User - instructor_id: ${user.instructor_id}")
                                         println("Created User - email: ${user.email}")
                                         println("Created User - name: ${user.name}")
                                         println("Created User - type: ${user.type}")
@@ -471,6 +478,27 @@ fun DashboardScreen(
     onNavigateToMyCourses: () -> Unit,
     user: User
 ) {
+    when (user.type?.lowercase()) {
+        "instructor" -> InstructorDashboard(
+            onNavigateToLogin = onNavigateToLogin,
+            user = user
+        )
+        else -> StudentDashboard(
+            onNavigateToLogin = onNavigateToLogin,
+            onNavigateToCourseRegistration = onNavigateToCourseRegistration,
+            onNavigateToMyCourses = onNavigateToMyCourses,
+            user = user
+        )
+    }
+}
+
+@Composable
+fun StudentDashboard(
+    onNavigateToLogin: () -> Unit,
+    onNavigateToCourseRegistration: () -> Unit,
+    onNavigateToMyCourses: () -> Unit,
+    user: User
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -479,7 +507,7 @@ fun DashboardScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Dashboard",
+            text = "Student Dashboard",
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.padding(bottom = 24.dp)
         )
@@ -551,6 +579,86 @@ fun DashboardScreen(
                 )
                 Text(
                     text = "Register for courses and view your schedule",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Button(
+            onClick = onNavigateToLogin,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = "Logout")
+        }
+    }
+}
+
+@Composable
+fun InstructorDashboard(
+    onNavigateToLogin: () -> Unit,
+    user: User
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Instructor Dashboard",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
+        
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "Instructor Information",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Text(
+                    text = "Instructor ID: ${user.instructor_id ?: "N/A"}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = "Name: ${user.name ?: "N/A"}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = "Email: ${user.email}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Text(
+                    text = "Department: ${user.dept_name ?: "N/A"}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        }
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "View Teaching Records",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "View sections you are teaching",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }

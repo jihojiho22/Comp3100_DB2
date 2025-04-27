@@ -19,10 +19,12 @@ data class AccountResponse(
     val success: Boolean,
     val message: String,
     val student_id: String? = null,
+    val instructor_id: String? = null,
     val name: String? = null,
     val email: String? = null,
     val type: String? = null,
-    val dept_name: String? = null
+    val dept_name: String? = null,
+    val title: String? = null
 )
 
 // -------- Data Models --------
@@ -30,6 +32,7 @@ data class User(
     val email: String,
     val type: String,
     val student_id: String?,
+    val instructor_id: String?,
     val name: String?,
     val dept_name: String?
 )
@@ -157,6 +160,7 @@ interface ApiService {
     
     @POST("api.php")
     suspend fun cancelWaitlist(@Body request: CancelWaitlistRequest): ApiResponse
+
 
     companion object {
         val api: ApiService by lazy {

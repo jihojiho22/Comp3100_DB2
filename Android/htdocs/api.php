@@ -118,30 +118,55 @@ try {
             if ($stmt->rowCount() > 0) {
                 $account = $stmt->fetch(PDO::FETCH_ASSOC);
                 
-                // Get student information
-                $stmt = $conn->prepare("SELECT student_id, name, dept_name FROM student WHERE email = ?");
-                $stmt->execute([$email]);
-                
-                $student_id = null;
-                $name = null;
-                $dept_name = null;
-                
-                if ($stmt->rowCount() > 0) {
-                    $student = $stmt->fetch(PDO::FETCH_ASSOC);
-                    $student_id = $student['student_id'];
-                    $name = $student['name'];
-                    $dept_name = $student['dept_name'];
+                if (strtolower($account['type']) == 'instructor') {
+                    // Get instructor information
+                    $stmt = $conn->prepare("SELECT i.instructor_id, i.instructor_name, i.title, i.dept_name FROM instructor i WHERE i.email = ?");
+                    $stmt->execute([$email]);
+                    
+                    if ($stmt->rowCount() > 0) {
+                        $instructor = $stmt->fetch(PDO::FETCH_ASSOC);
+                        error_log("Instructor data found: " . json_encode($instructor));
+                        
+                        echo json_encode([
+                            'success' => true,
+                            'message' => 'Login successful',
+                            'instructor_id' => $instructor['instructor_id'],
+                            'email' => $account['email'],
+                            'type' => strtolower($account['type']),
+                            'name' => $instructor['instructor_name'],
+                            'dept_name' => $instructor['dept_name'],
+                            'title' => $instructor['title']
+                        ]);
+                    } else {
+                        error_log("No instructor found for email: " . $email);
+                        echo json_encode(['success' => false, 'message' => 'Instructor record not found']);
+                    }
+                } else {
+                    // Get student information
+                    $stmt = $conn->prepare("SELECT student_id, name, dept_name FROM student WHERE email = ?");
+                    $stmt->execute([$email]);
+                    
+                    $student_id = null;
+                    $name = null;
+                    $dept_name = null;
+                    
+                    if ($stmt->rowCount() > 0) {
+                        $student = $stmt->fetch(PDO::FETCH_ASSOC);
+                        $student_id = $student['student_id'];
+                        $name = $student['name'];
+                        $dept_name = $student['dept_name'];
+                    }
+                    
+                    echo json_encode([
+                        'success' => true, 
+                        'message' => 'Login successful',
+                        'student_id' => $student_id,
+                        'email' => $account['email'],
+                        'type' => $account['type'],
+                        'name' => $name,
+                        'dept_name' => $dept_name
+                    ]);
                 }
-                
-                echo json_encode([
-                    'success' => true, 
-                    'message' => 'Login successful',
-                    'student_id' => $student_id,
-                    'email' => $account['email'],
-                    'type' => $account['type'],
-                    'name' => $name,
-                    'dept_name' => $dept_name
-                ]);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Invalid email or password']);
             }
@@ -418,5 +443,3 @@ try {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
 ?>
-
-
