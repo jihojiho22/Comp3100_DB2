@@ -151,4 +151,3 @@ INSERT IGNORE INTO student(student_id, name, email, dept_name) VALUES('252974878
 INSERT IGNORE INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('2529748783', 'CS101', 'A01', 'Fall', 2025, Null);
 UPDATE section SET capacity=capacity-1 WHERE (course_id = 'CS101')AND (section_id = 'A01');
 
--- Continue this pattern for other inserts
