@@ -268,6 +268,46 @@ try {
                 echo json_encode(['success' => false, 'message' => 'Registration failed: ' . $e->getMessage()]);
             }
         }
+        elseif ($action == 'drop_waitlist') {
+            $student_id = $data['student_id'] ?? '';
+            $course_id = $data['course_id'] ?? '';
+            $section_id = $data['section_id'] ?? '';
+            $semester = $data['semester'] ?? '';
+            $year = $data['year'] ?? '';
+            $position = $data['waitlist_position'] ?? '';
+
+            // Check if the student is on the waitlist
+            $check_sql = "SELECT * FROM waitlist WHERE student_id = ? AND course_id = ? AND section_id = ? AND semester = ? AND year = ?";
+            $check_stmt = $conn->prepare($check_sql);
+            $check_stmt->execute([$student_id, $course_id, $section_id, $semester, $year]);
+            
+            if ($check_stmt->rowCount() == 0) {
+                echo json_encode(['success' => false, 'message' => 'You are not on the waitlist for this course section']);
+                exit;
+            }
+            $conn->beginTransaction();
+            try {
+                // Remove the student from the waitlist
+                $remove_waitlist_sql = "DELETE FROM waitlist WHERE student_id = ? AND course_id = ? AND section_id = ? AND semester = ? AND year = ?";
+                $remove_waitlist_stmt = $conn->prepare($remove_waitlist_sql);
+                $remove_waitlist_stmt->execute([$student_id, $course_id, $section_id, $semester, $year]);
+                
+                // Simple reordering of waitlist positions
+                $reorder_sql = "UPDATE waitlist SET waitlist_position = waitlist_position - 1 WHERE course_id = ? AND section_id = ? AND semester = ? AND year = ? AND waitlist_position > ?";
+                $reorder_stmt = $conn->prepare($reorder_sql);
+                $reorder_stmt->execute([$course_id, $section_id, $semester, $year, $position]);
+
+                $conn->commit();
+                echo json_encode(['success' => true, 'message' => 'Successfully dropped course: ' . $course_id]);
+                
+            } catch (PDOException $e) {
+                if ($conn->inTransaction()) {
+                    $conn->rollBack();
+                }
+                error_log("Drop waitlist error: " . $e->getMessage());
+                echo json_encode(['success' => false, 'message' => 'Failed to drop waitlist: ' . $e->getMessage()]);
+            }
+        }
         elseif ($action == 'drop') {
             $student_id = $data['student_id'] ?? '';
             $course_id = $data['course_id'] ?? '';
