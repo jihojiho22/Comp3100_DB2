@@ -1111,36 +1111,361 @@ fun MyCoursesScreen(
     onNavigateToDashboard: () -> Unit,
     user: User
 ) {
+    //var sections by remember { mutableStateOf<List<Section>>(emptyList()) }
+    var registrations by remember { mutableStateOf<List<Registration>>(emptyList()) }
+    var waitlistEntries by remember { mutableStateOf<List<WaitlistEntry>>(emptyList()) }
+    /*var selectedSection by remember { mutableStateOf<Section?>(null) }*/
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var registrationSuccess by remember { mutableStateOf(false) }
+    var dropSuccess by remember { mutableStateOf(false) }
+    /*var waitlistSuccess by remember { mutableStateOf<String?>(null) }*/
+    val scope = rememberCoroutineScope()
+
+
+    // Load sections and registrations when the screen is first displayed
+    LaunchedEffect(Unit) {
+        isLoading = true
+        try {
+            // Load registrations if student_id is available
+            if (user.student_id != null && !user.student_id.isNullOrEmpty()) {
+                val registrationsResponse = ApiService.api.getRegistrations(mapOf(
+                    "action" to "get_registrations",
+                    "student_id" to (user.student_id ?: "")
+                ))
+                if (registrationsResponse.isSuccessful) {
+                    val result = registrationsResponse.body()
+                    if (result?.success == true) {
+                        registrations = result.registrations ?: emptyList()
+                    }
+                }
+
+
+                val waitlistResponse = ApiService.api.getWaitlist(mapOf(
+                    "action" to "get_waitlist",
+                    "student_id" to user.student_id
+                ))
+                if (waitlistResponse.isSuccessful) {
+                    val waitlistResult = waitlistResponse.body()
+                    if (waitlistResult?.success == true) {
+                        waitlistEntries = waitlistResult.waitlist ?: emptyList()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            errorMessage = "Error: ${e.message}"
+        } finally {
+            isLoading = false
+        }
+    }
+
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .padding(16.dp)
     ) {
         Text(
             text = "My Courses",
             style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-        
-        Text(
-            text = "This feature is currently under maintenance.",
-            style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.padding(bottom = 16.dp)
         )
-        
-        Text(
-            text = "Please use the Course Registration screen to manage your courses.",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(bottom = 32.dp)
-        )
-        
-        Button(
-            onClick = onNavigateToDashboard,
-            modifier = Modifier.fillMaxWidth()
+
+
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .size(50.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
+        } else if (errorMessage != null) {
+            Text(
+                text = errorMessage!!,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
+
+
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
         ) {
-            Text(text = "Back to Dashboard")
+            items(registrations) { section ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                    //.clickable { selectedSection = section }
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Course: ${section.course_id}",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = "Section: ${section.section_id}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "Semester: ${section.semester} ${section.semester}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "Year: ${section.year}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "Grade: ${section.grade}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+
+
+                        Button(
+                            onClick = {
+                                if (user.student_id.isNullOrEmpty()) {
+                                    errorMessage =
+                                        "Student ID not available. Please contact support."
+                                    return@Button
+                                }
+
+
+                                isLoading = true
+                                val request = CourseDropRequest(
+                                    student_id = user.student_id,
+                                    course_id = section.course_id,
+                                    section_id = section.section_id,
+                                    semester = section.semester,
+                                    year = section.year
+                                )
+
+
+                                scope.launch {
+                                    try {
+                                        val response = ApiService.api.dropCourse(request)
+                                        if (response.isSuccessful) {
+                                            val result = response.body()
+                                            if (result?.success == true) {
+                                                dropSuccess = true
+                                                errorMessage = null
+
+
+                                                // Reload sections and registrations after successful drop
+                                                delay(1000) // Wait for 1 second to show success message
+
+
+                                                // Reload registrations
+                                                val registrationsResponse =
+                                                    ApiService.api.getRegistrations(
+                                                        mapOf(
+                                                            "action" to "get_registrations",
+                                                            "student_id" to (user.student_id ?: "")
+                                                        )
+                                                    )
+                                                if (registrationsResponse.isSuccessful) {
+                                                    val registrationsResult =
+                                                        registrationsResponse.body()
+                                                    if (registrationsResult?.success == true) {
+                                                        registrations =
+                                                            registrationsResult.registrations
+                                                                ?: emptyList()
+                                                    }
+                                                }
+                                                val waitlistResponse = ApiService.api.getWaitlist(
+                                                    mapOf(
+                                                        "action" to "get_waitlist",
+                                                        "student_id" to user.student_id
+                                                    )
+                                                )
+                                                if (waitlistResponse.isSuccessful) {
+                                                    val waitlistResult = waitlistResponse.body()
+                                                    if (waitlistResult?.success == true) {
+                                                        waitlistEntries =
+                                                            waitlistResult.waitlist ?: emptyList()
+                                                    }
+                                                }
+
+
+                                                // Reset success flags after reloading data
+                                                dropSuccess = false
+                                                registrationSuccess = false
+                                                //waitlistSuccess = null
+                                            } else {
+                                                errorMessage =
+                                                    result?.message ?: "Failed to drop course"
+                                            }
+                                        } else {
+                                            errorMessage =
+                                                "Failed to drop course: ${response.code()}"
+                                        }
+                                    } catch (e: Exception) {
+                                        errorMessage = "Error: ${e.message}"
+                                    } finally {
+                                        isLoading = false
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                        ) {
+                            Text("Drop Course")
+                        }
+                    }
+                }
+            }
+
+            items(waitlistEntries) { waitlist ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                    //.clickable { selectedSection = section }
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text (
+                            text = "WaitListed",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                        Text(
+                            text = "Course: ${waitlist.course_id}",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = "Section: ${waitlist.section_id}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "Semester: ${waitlist.semester} ${waitlist.semester}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "Year: ${waitlist.year}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "Position: ${waitlist.waitlist_position}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+
+
+                        Button(
+                            onClick = {
+                                if (user.student_id.isNullOrEmpty()) {
+                                    errorMessage =
+                                        "Student ID not available. Please contact support."
+                                    return@Button
+                                }
+
+
+                                isLoading = true
+                                val request = WaitlistDropRequest(
+                                    student_id = user.student_id,
+                                    course_id = waitlist.course_id,
+                                    section_id = waitlist.section_id,
+                                    semester = waitlist.semester,
+                                    year = waitlist.year,
+                                    waitlist_position=waitlist.waitlist_position
+                                )
+
+
+                                scope.launch {
+                                    try {
+                                        val response = ApiService.api.dropWaitlist(request)
+                                        if (response.isSuccessful) {
+                                            val result = response.body()
+                                            if (result?.success == true) {
+                                                dropSuccess = true
+                                                errorMessage = null
+
+
+                                                // Reload sections and registrations after successful drop
+                                                delay(1000) // Wait for 1 second to show success message
+
+
+                                                // Reload registrations
+                                                val registrationsResponse =
+                                                    ApiService.api.getRegistrations(
+                                                        mapOf(
+                                                            "action" to "get_registrations",
+                                                            "student_id" to (user.student_id ?: "")
+                                                        )
+                                                    )
+                                                if (registrationsResponse.isSuccessful) {
+                                                    val registrationsResult =
+                                                        registrationsResponse.body()
+                                                    if (registrationsResult?.success == true) {
+                                                        registrations =
+                                                            registrationsResult.registrations
+                                                                ?: emptyList()
+                                                    }
+                                                }
+                                                val waitlistResponse = ApiService.api.getWaitlist(
+                                                    mapOf(
+                                                        "action" to "get_waitlist",
+                                                        "student_id" to user.student_id
+                                                    )
+                                                )
+                                                if (waitlistResponse.isSuccessful) {
+                                                    val waitlistResult = waitlistResponse.body()
+                                                    if (waitlistResult?.success == true) {
+                                                        waitlistEntries =
+                                                            waitlistResult.waitlist ?: emptyList()
+                                                    }
+                                                }
+
+
+                                                // Reset success flags after reloading data
+                                                dropSuccess = false
+                                                registrationSuccess = false
+                                                //waitlistSuccess = null
+                                            } else {
+                                                errorMessage =
+                                                    result?.message ?: "Failed to drop course"
+                                            }
+                                        } else {
+                                            errorMessage =
+                                                "Failed to drop course: ${response.code()}"
+                                        }
+                                    } catch (e: Exception) {
+                                        errorMessage = "Error: ${e.message}"
+                                    } finally {
+                                        isLoading = false
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                        ) {
+                            Text("Drop From Waitlist")
+                        }
+                    }
+                }
+            }
+        }
+
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Button(
+                onClick = onNavigateToDashboard,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp)
+            ) {
+                Text(text = "Back to Dashboard")
+            }
         }
     }
 }
