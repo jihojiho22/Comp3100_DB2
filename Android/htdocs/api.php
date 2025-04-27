@@ -105,6 +105,8 @@ try {
             $email = $data['email'] ?? '';
             $password = $data['password'] ?? '';
 
+
+
             // Validate inputs
             if (empty($email) || empty($password)) {
                 echo json_encode(['success' => false, 'message' => 'Email and password are required']);
@@ -161,6 +163,16 @@ try {
             }
 
             try {
+                // Check if section exists
+                $section_sql = "SELECT capacity FROM section WHERE course_id = ? AND section_id = ? AND semester = ? AND year = ?";
+                $section_stmt = $conn->prepare($section_sql);
+                $section_stmt->execute([$course_id, $section_id, $semester, $year]);
+
+                if ($section_stmt->rowCount() == 0) {
+                    echo json_encode(['success' => false, 'message' => 'Section does not exist']);
+                    exit;
+                }
+
                 // Check if already registered
                 $check_sql = "SELECT 1 FROM take WHERE student_id = ? AND course_id = ? AND section_id = ? AND semester = ? AND year = ?";
                 $check_stmt = $conn->prepare($check_sql);
@@ -181,16 +193,6 @@ try {
                     exit;
                 }
 
-                // Check if section exists
-                $section_sql = "SELECT capacity FROM section WHERE course_id = ? AND section_id = ? AND semester = ? AND year = ?";
-                $section_stmt = $conn->prepare($section_sql);
-                $section_stmt->execute([$course_id, $section_id, $semester, $year]);
-
-                if ($section_stmt->rowCount() == 0) {
-                    echo json_encode(['success' => false, 'message' => 'Section does not exist']);
-                    exit;
-                }
-
                 $section = $section_stmt->fetch(PDO::FETCH_ASSOC);
                 $capacity = $section['capacity'];
 
@@ -203,8 +205,8 @@ try {
 
                 // Start transaction
                 $conn->beginTransaction();
-
-                if ($enrolled_count >= $capacity || $join_waitlist) {
+                //if ($enrolled_count >= $capacity || $join_waitlist) {
+                if ($capacity == 0) {
                     // Get current waitlist count for this section
                     $waitlist_count_sql = "SELECT COUNT(*) as waitlist_count FROM waitlist WHERE course_id = ? AND section_id = ? AND semester = ? AND year = ?";
                     $waitlist_count_stmt = $conn->prepare($waitlist_count_sql);
@@ -418,5 +420,3 @@ try {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
 ?>
-
-
