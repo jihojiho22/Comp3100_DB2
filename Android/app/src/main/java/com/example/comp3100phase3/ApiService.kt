@@ -95,6 +95,16 @@ data class CourseDropRequest(
     val year: String
 )
 
+data class WaitlistDropRequest(
+    val action: String = "drop_waitlist",
+    val student_id: String,
+    val course_id: String,
+    val section_id: String,
+    val semester: String,
+    val year: String,
+    val waitlist_position: Int
+)
+
 data class CancelWaitlistRequest(
     val action: String = "cancel_waitlist",
     val student_id: String,
@@ -151,6 +161,9 @@ interface ApiService {
     
     @POST("api.php")
     suspend fun dropCourse(@Body request: CourseDropRequest): Response<ApiResponse>
+    
+    @POST("api.php")
+    suspend fun dropWaitlist(@Body request: WaitlistDropRequest): Response<ApiResponse>
 
     @POST("api.php")
     suspend fun getRegistrations(@Body request: Map<String, String>): Response<RegistrationsResponse>
