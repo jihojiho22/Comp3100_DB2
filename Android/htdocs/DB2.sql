@@ -121,33 +121,63 @@ VALUES
 ('CS101', 'A01', 'Fall', 2025, 'I001', 'R101', 'TS101'),
 ('CS202', 'B01', 'Winter', 2025, 'I002', 'R202', 'TS102');
 
-INSERT IGNORE INTO account(email, password, type) VALUES ('Abe_Lincoln@student.uml.edu', 'Lincoln12345!', 'student');
-INSERT IGNORE INTO student(student_id, name, email, dept_name) VALUES('1484235246', 'Abe Lincoln', 'Abe_Lincoln@student.uml.edu', 'Computer Science');
-INSERT IGNORE INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('1484235246', 'CS101', 'A01', 'Fall', 2025, Null);
+INSERT INTO account(email, password, type) VALUES ('Abe_Lincoln@student.uml.edu', 'Lincoln12345!', 'student');
+INSERT INTO student(student_id, name, email, dept_name) VALUES('S3973011766', 'Abe Lincoln', 'Abe_Lincoln@student.uml.edu', 'Computer Science');
+INSERT INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('S3973011766', 'CS101', 'A01', 'Fall', 2025, Null);
 UPDATE section SET capacity=capacity-1 WHERE (course_id = 'CS101')AND (section_id = 'A01');
-
-INSERT IGNORE INTO account(email, password, type) VALUES ('John_Wayne@student.uml.edu', 'Wayne12345!', 'student');
-INSERT IGNORE INTO student(student_id, name, email, dept_name) VALUES('4296367718', 'John Wayne', 'John_Wayne@student.uml.edu', 'Computer Science');
-INSERT IGNORE INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('4296367718', 'CS101', 'A01', 'Fall', 2025, Null);
+INSERT INTO account(email, password, type) VALUES ('John_Wayne@student.uml.edu', 'Wayne12345!', 'student');
+INSERT INTO student(student_id, name, email, dept_name) VALUES('S6934830240', 'John Wayne', 'John_Wayne@student.uml.edu', 'Computer Science');
+INSERT INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('S6934830240', 'CS101', 'A01', 'Fall', 2025, Null);
 UPDATE section SET capacity=capacity-1 WHERE (course_id = 'CS101')AND (section_id = 'A01');
-
-INSERT IGNORE INTO account(email, password, type) VALUES ('Mark_Yard@student.uml.edu', 'Yard12345!', 'student');
-INSERT IGNORE INTO student(student_id, name, email, dept_name) VALUES('1996493580', 'Mark Yard', 'Mark_Yard@student.uml.edu', 'Computer Science');
-INSERT IGNORE INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('1996493580', 'CS101', 'A01', 'Fall', 2025, Null);
+INSERT INTO account(email, password, type) VALUES ('Mark_Yard@student.uml.edu', 'Yard12345!', 'student');
+INSERT INTO student(student_id, name, email, dept_name) VALUES('S6687589261', 'Mark Yard', 'Mark_Yard@student.uml.edu', 'Computer Science');
+INSERT INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('S6687589261', 'CS101', 'A01', 'Fall', 2025, Null);
 UPDATE section SET capacity=capacity-1 WHERE (course_id = 'CS101')AND (section_id = 'A01');
-
-INSERT IGNORE INTO account(email, password, type) VALUES ('Reggie_Palmer@student.uml.edu', 'Palmer12345!', 'student');
-INSERT IGNORE INTO student(student_id, name, email, dept_name) VALUES('3241841407', 'Reggie Palmer', 'Reggie_Palmer@student.uml.edu', 'Computer Science');
-INSERT IGNORE INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('3241841407', 'CS101', 'A01', 'Fall', 2025, Null);
+INSERT INTO account(email, password, type) VALUES ('Reggie_Palmer@student.uml.edu', 'Palmer12345!', 'student');
+INSERT INTO student(student_id, name, email, dept_name) VALUES('S4938311951', 'Reggie Palmer', 'Reggie_Palmer@student.uml.edu', 'Computer Science');
+INSERT INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('S4938311951', 'CS101', 'A01', 'Fall', 2025, Null);
 UPDATE section SET capacity=capacity-1 WHERE (course_id = 'CS101')AND (section_id = 'A01');
-
-INSERT IGNORE INTO account(email, password, type) VALUES ('Tom_Scran@student.uml.edu', 'Scran12345!', 'student');
-INSERT IGNORE INTO student(student_id, name, email, dept_name) VALUES('1413673051', 'Tom Scran', 'Tom_Scran@student.uml.edu', 'Computer Science');
-INSERT IGNORE INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('1413673051', 'CS101', 'A01', 'Fall', 2025, Null);
+INSERT INTO account(email, password, type) VALUES ('Tom_Scran@student.uml.edu', 'Scran12345!', 'student');
+INSERT INTO student(student_id, name, email, dept_name) VALUES('S3009531222', 'Tom Scran', 'Tom_Scran@student.uml.edu', 'Computer Science');
+INSERT INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('S3009531222', 'CS101', 'A01', 'Fall', 2025, Null);
 UPDATE section SET capacity=capacity-1 WHERE (course_id = 'CS101')AND (section_id = 'A01');
-
-INSERT IGNORE INTO account(email, password, type) VALUES ('Grant_Fisher@student.uml.edu', 'Fisher12345!', 'student');
-INSERT IGNORE INTO student(student_id, name, email, dept_name) VALUES('2529748783', 'Grant Fisher', 'Grant_Fisher@student.uml.edu', 'Computer Science');
-INSERT IGNORE INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('2529748783', 'CS101', 'A01', 'Fall', 2025, Null);
+INSERT INTO account(email, password, type) VALUES ('Grant_Fisher@student.uml.edu', 'Fisher12345!', 'student');
+INSERT INTO student(student_id, name, email, dept_name) VALUES('S9697663650', 'Grant Fisher', 'Grant_Fisher@student.uml.edu', 'Computer Science');
+INSERT INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('S9697663650', 'CS101', 'A01', 'Fall', 2025, Null);
 UPDATE section SET capacity=capacity-1 WHERE (course_id = 'CS101')AND (section_id = 'A01');
-
+INSERT INTO account(email, password, type) VALUES ('Martha_Lime@student.uml.edu', 'Lime12345!', 'student');
+INSERT INTO student(student_id, name, email, dept_name) VALUES('S8553060731', 'Martha Lime', 'Martha_Lime@student.uml.edu', 'Computer Science');
+INSERT INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('S8553060731', 'CS101', 'A01', 'Fall', 2025, Null);
+UPDATE section SET capacity=capacity-1 WHERE (course_id = 'CS101')AND (section_id = 'A01');
+INSERT INTO account(email, password, type) VALUES ('Bant_Jane@student.uml.edu', 'Jane12345!', 'student');
+INSERT INTO student(student_id, name, email, dept_name) VALUES('S8104631070', 'Bant Jane', 'Bant_Jane@student.uml.edu', 'Computer Science');
+INSERT INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('S8104631070', 'CS101', 'A01', 'Fall', 2025, Null);
+UPDATE section SET capacity=capacity-1 WHERE (course_id = 'CS101')AND (section_id = 'A01');
+INSERT INTO account(email, password, type) VALUES ('Yan_Cran@student.uml.edu', 'Cran12345!', 'student');
+INSERT INTO student(student_id, name, email, dept_name) VALUES('S7545211217', 'Yan Cran', 'Yan_Cran@student.uml.edu', 'Computer Science');
+INSERT INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('S7545211217', 'CS101', 'A01', 'Fall', 2025, Null);
+UPDATE section SET capacity=capacity-1 WHERE (course_id = 'CS101')AND (section_id = 'A01');
+INSERT INTO account(email, password, type) VALUES ('Dake_Lin@student.uml.edu', 'Lin12345!', 'student');
+INSERT INTO student(student_id, name, email, dept_name) VALUES('S3649993662', 'Dake Lin', 'Dake_Lin@student.uml.edu', 'Computer Science');
+INSERT INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('S3649993662', 'CS101', 'A01', 'Fall', 2025, Null);
+UPDATE section SET capacity=capacity-1 WHERE (course_id = 'CS101')AND (section_id = 'A01');
+INSERT INTO account(email, password, type) VALUES ('Harry_Terr@student.uml.edu', 'Terr12345!', 'student');
+INSERT INTO student(student_id, name, email, dept_name) VALUES('S9039543029', 'Harry Terr', 'Harry_Terr@student.uml.edu', 'Computer Science');
+INSERT INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('S9039543029', 'CS101', 'A01', 'Fall', 2025, Null);
+UPDATE section SET capacity=capacity-1 WHERE (course_id = 'CS101')AND (section_id = 'A01');
+INSERT INTO account(email, password, type) VALUES ('Boris_Johnson@student.uml.edu', 'Johnson12345!', 'student');
+INSERT INTO student(student_id, name, email, dept_name) VALUES('S4127207041', 'Boris Johnson', 'Boris_Johnson@student.uml.edu', 'Computer Science');
+INSERT INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('S4127207041', 'CS101', 'A01', 'Fall', 2025, Null);
+UPDATE section SET capacity=capacity-1 WHERE (course_id = 'CS101')AND (section_id = 'A01');
+INSERT INTO account(email, password, type) VALUES ('Mark_Billson@student.uml.edu', 'Billson12345!', 'student');
+INSERT INTO student(student_id, name, email, dept_name) VALUES('S7317496443', 'Mark Billson', 'Mark_Billson@student.uml.edu', 'Computer Science');
+INSERT INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('S7317496443', 'CS101', 'A01', 'Fall', 2025, Null);
+UPDATE section SET capacity=capacity-1 WHERE (course_id = 'CS101')AND (section_id = 'A01');
+INSERT INTO account(email, password, type) VALUES ('Cart_Fillson@student.uml.edu', 'Fillson12345!', 'student');
+INSERT INTO student(student_id, name, email, dept_name) VALUES('S4512850719', 'Cart Fillson', 'Cart_Fillson@student.uml.edu', 'Computer Science');
+INSERT INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('S4512850719', 'CS101', 'A01', 'Fall', 2025, Null);
+UPDATE section SET capacity=capacity-1 WHERE (course_id = 'CS101')AND (section_id = 'A01');
+INSERT INTO account(email, password, type) VALUES ('Indi_Huff@student.uml.edu', 'Huff12345!', 'student');
+INSERT INTO student(student_id, name, email, dept_name) VALUES('S1958362369', 'Indi Huff', 'Indi_Huff@student.uml.edu', 'Computer Science');
+INSERT INTO take(student_id, course_id, section_id, semester, year, grade) VALUES ('S1958362369', 'CS101', 'A01', 'Fall', 2025, Null);
+UPDATE section SET capacity=capacity-1 WHERE (course_id = 'CS101')AND (section_id = 'A01');
