@@ -417,12 +417,78 @@ try {
                 echo json_encode(['success' => false, 'message' => 'Failed to get registrations: ' . $e->getMessage()]);
             }
         }
+        elseif ($action == 'get_instructor_records') {
+            // Action to get instructor records
+            $instructor_id = $data['instructor_id'] ?? '';
+            if (empty($instructor_id)) {
+                echo json_encode(['success' => false, 'message' => 'Instructor ID is required']);
+                exit;
+            }
+            try {
+                // Get all courses taught by the instructor
+                $sql = "SELECT c.course_id, s.section_id, s.semester, s.year 
+                        FROM course c 
+                        JOIN section s ON c.course_id = s.course_id 
+                        WHERE s.instructor_id = ?;
+                ";
+                $stmt = $conn->prepare($sql);
+                $stmt->execute([$instructor_id]);
+                
+                $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+                // Get instructor information
+                //$sql_instructor = "SELECT instructor_id, instructor_name, dept_name FROM instructor WHERE instructor_id = ?";
+                $sql_instructor = "SELECT instructor_id FROM instructor WHERE instructor_id = ?";
+                $stmt_instructor = $conn->prepare($sql_instructor);
+                $stmt_instructor->execute([$instructor_id]);
+                $instructor = $stmt_instructor->fetch(PDO::FETCH_ASSOC);
+        
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Instructor records retrieved successfully',
+                    'instructor' => $instructor,
+                    'courses' => $courses
+                ]);
+            } catch (PDOException $e) {
+                error_log("Get instructor records error: " . $e->getMessage());
+                echo json_encode(['success' => false, 'message' => 'Failed to get instructor records: ' . $e->getMessage()]);
+            }
+        }
+        elseif ($action == 'get_instructor_record_students') {
+            $course_id = $data['course_id'] ?? '';
+            $section_id = $data['section_id'] ?? '';
+            $year = $data['year'] ?? '';
+            $semester = $data['semester'] ?? '';
+
+            if (empty($course_id) || empty($section_id) || empty($year) || empty($semester)) {
+                echo json_encode(['success' => false, 'message' => 'Student ID is required']);
+                exit;
+            }
+        }
         elseif ($action == 'get_waitlist') {
             $student_id = $data['student_id'] ?? '';
             
             if (empty($student_id)) {
                 echo json_encode(['success' => false, 'message' => 'Student ID is required']);
                 exit;
+            }
+            try {
+
+                $sql = "SELECT s.student_id, s.name, s.email, t.grade FROM student s, take t WHERE s.student_id = t.student_id AND t.course_id = ? AND t.section_id = ? AND t.year = ? AND t.semester = ?";
+                $stmt = $conn->prepare($sql);
+                $stmt->execute([$course_id, $section_id, $year, $semester]);
+
+                $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Instructor records retrieved successfully',
+                    'students' => $students
+                ]);
+
+            } catch (PDOException $e) {
+                error_log("Get waitlist error: " . $e->getMessage());
+                echo json_encode(['success' => false, 'message' => 'Failed to get waitlist entries: ' . $e->getMessage()]);
             }
             
             try {
@@ -444,6 +510,7 @@ try {
             }
         }
     } 
+
     // Handle GET request to view all accounts in the database
     elseif ($method == 'GET') {
         $table = $_GET['table'] ?? '';
