@@ -47,6 +47,10 @@ class MainActivity : ComponentActivity() {
             COMP3100Phase3Theme {
                 var currentScreen by remember { mutableStateOf("login") }
                 var currentUser by remember { mutableStateOf<User?>(null) }
+                var targetCourseId by remember { mutableStateOf("") }
+                var targetSectionId by remember { mutableStateOf("") }
+                var targetYear by remember { mutableStateOf("") }
+                var targetSemester by remember { mutableStateOf("") }
 
                 when (currentScreen) {
                     "login" -> LoginScreen(
@@ -56,6 +60,22 @@ class MainActivity : ComponentActivity() {
                             currentScreen = "dashboard"
                         }
                     )
+                    "instructorStudents" -> InstructorOutputStudents (
+                        onNavigateToDashboard = { currentScreen = "dashboard" },
+                        target_course_id = "",
+                        target_section_id = "",
+                        target_year = "",
+                        target_semester = "",
+                        user = currentUser ?: User(
+                            email = "",
+                            type = "student",
+                            student_id = null,
+                            instructor_id = null,
+                            name = null,
+                            dept_name = null
+                        )
+
+                    )
                     "create" -> CreateAccountScreen(
                         onNavigateToLogin = { currentScreen = "login" }
                     )
@@ -63,6 +83,16 @@ class MainActivity : ComponentActivity() {
                         onNavigateToLogin = {
                             currentUser = null
                             currentScreen = "login"
+                        },
+                        onNavigateToInstructorOutputStudents = { course_id, section_id, year, semester ->
+                            // Set the arguments that will be passed to InstructorOutputStudents screen
+                            targetCourseId = course_id
+                            targetSectionId = section_id
+                            targetYear = year
+                            targetSemester = semester
+
+                            // Change screen to instructor students
+                            currentScreen = "instructorStudents"
                         },
                         onNavigateToCourseRegistration = { currentScreen = "courseRegistration" },
                         onNavigateToMyCourses = { currentScreen = "myCourses" },
@@ -159,7 +189,7 @@ fun LoginScreen(
                 onDone = {
                     if (email.isNotEmpty() && password.isNotEmpty()) {
                         onNavigateToDashboard(User(email, "student", null, null, null, null))
-                        // Handle login
+                        // Handle logino
 
                     }
                 }
@@ -476,6 +506,7 @@ fun PreviewCreateAccountScreen() {
 @Composable
 fun DashboardScreen(
     onNavigateToLogin: () -> Unit,
+    onNavigateToInstructorOutputStudents: (String, String, String, String) -> Unit,
     onNavigateToCourseRegistration: () -> Unit,
     onNavigateToMyCourses: () -> Unit,
     user: User
@@ -483,6 +514,7 @@ fun DashboardScreen(
     when (user.type?.lowercase()) {
         "instructor" -> InstructorDashboard(
             onNavigateToLogin = onNavigateToLogin,
+            onNavigateToInstructorOutputStudents  = onNavigateToInstructorOutputStudents,
             user = user,
             apiService = ApiService.api
         )
@@ -492,6 +524,140 @@ fun DashboardScreen(
             onNavigateToMyCourses = onNavigateToMyCourses,
             user = user
         )
+    }
+}
+
+@Composable
+fun InstructorOutputStudents (
+    onNavigateToDashboard: () -> Unit,
+    target_course_id: String,
+    target_section_id: String,
+    target_year: String,
+    target_semester: String,
+    user: User
+) {
+    /*//var sections by remember { mutableStateOf<List<Section>>(emptyList()) }*/
+    var students by remember { mutableStateOf<List<InstructStudent>>(emptyList()) }
+    //var waitlistEntries by remember { mutableStateOf<List<WaitlistEntry>>(emptyList()) }
+    /*var selectedSection by remember { mutableStateOf<Section?>(null) }*/
+
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    //var studentSuccess by remember { mutableStateOf(false) }
+    //var dropSuccess by remember { mutableStateOf(false) }
+    /*var waitlistSuccess by remember { mutableStateOf<String?>(null) }*/
+    val scope = rememberCoroutineScope()
+    //var selectedYear by remember { mutableStateOf<String?>(null) }
+    //var selectedSemester by remember { mutableStateOf<String?>(null) }
+
+
+
+    // Load sections and registrations when the screen is first displayed
+    LaunchedEffect(Unit) {
+        isLoading = true
+        try {
+            val request = InstructorStudentsRequest(
+                course_id = target_course_id,
+                section_id = target_section_id,
+                year = target_year,
+                semester = target_semester
+            )
+            val studentsResponse = ApiService.api.getInstructorRecordsStudents(request)
+            if (studentsResponse.isSuccessful) {
+                val result = studentsResponse.body()
+                if (result?.success == true) {
+                    students = result.students ?: emptyList()
+                }
+            }
+        } catch (e: Exception) {
+            errorMessage = "Error: ${e.message}"
+        } finally {
+            isLoading = false
+        }
+    }
+
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Students",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .size(50.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
+        } else if (errorMessage != null) {
+            Text(
+                text = errorMessage!!,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
+
+
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
+            items(students) { student ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                    //.clickable { selectedSection = section }
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "${student.name}",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = "Email: ${student.email}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "Student ID: ${student.student_id}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "Grade: ${student.grade}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+
+                    }
+                }
+
+            }
+        }
+
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Button(
+                onClick = onNavigateToDashboard,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp)
+            ) {
+                Text(text = "Back to Dashboard")
+            }
+        }
     }
 }
 
@@ -601,14 +767,13 @@ fun StudentDashboard(
 @Composable
 fun InstructorDashboard(
     onNavigateToLogin: () -> Unit,
+    onNavigateToInstructorOutputStudents: (String, String, String, String) -> Unit,
     user: User,
     apiService: ApiService
 ) {
     var courses by remember { mutableStateOf<List<CourseRecord>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    var exampleInstructorId = "12345"
 
     LaunchedEffect(user.instructor_id) {
         try {
@@ -687,15 +852,21 @@ fun InstructorDashboard(
                                 .fillMaxWidth()
                                 .padding(vertical = 4.dp)
                         ) {
-                            Text(
-                                text = "${course.course_id} - ${course.title} (${course.semester} ${course.year})",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Text(
-                                text = course.description,
+                            Button(
+                                onClick = {onNavigateToInstructorOutputStudents(course.course_id, course.section_id, course.year, course.semester)},
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "${course.course_id} - ${course.section_id} (${course.semester} ${course.year})",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+
+                            /*Text(
+                                text = "hi",//course.description,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            )*/
                         }
                     }
                 }
@@ -885,197 +1056,197 @@ fun CourseRegistrationScreen(
         ) {
             items(sections) { section ->
                 if (section.year == selectedYear && section.semester == selectedSemester) {
-                // Check if the student is registered for this section
-                val isRegistered = registrations.any { reg ->
-                    reg.course_id == section.course_id &&
-                            reg.section_id == section.section_id &&
-                            reg.semester == section.semester &&
-                            reg.year == section.year
-                }
+                    // Check if the student is registered for this section
+                    val isRegistered = registrations.any { reg ->
+                        reg.course_id == section.course_id &&
+                                reg.section_id == section.section_id &&
+                                reg.semester == section.semester &&
+                                reg.year == section.year
+                    }
 
-                // Check if the student is waitlisted for this section
-                val isWaitlisted = waitlistEntries.any { entry ->
-                    entry.course_id == section.course_id &&
-                            entry.section_id == section.section_id &&
-                            entry.semester == section.semester &&
-                            entry.year == section.year
-                }
-
-                // Get waitlist position if waitlisted
-                val waitlistPosition = if (isWaitlisted) {
-                    waitlistEntries.find { entry ->
+                    // Check if the student is waitlisted for this section
+                    val isWaitlisted = waitlistEntries.any { entry ->
                         entry.course_id == section.course_id &&
                                 entry.section_id == section.section_id &&
                                 entry.semester == section.semester &&
                                 entry.year == section.year
-                    }?.waitlist_position
-                } else null
+                    }
 
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                        .clickable { selectedSection = section }
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
+                    // Get waitlist position if waitlisted
+                    val waitlistPosition = if (isWaitlisted) {
+                        waitlistEntries.find { entry ->
+                            entry.course_id == section.course_id &&
+                                    entry.section_id == section.section_id &&
+                                    entry.semester == section.semester &&
+                                    entry.year == section.year
+                        }?.waitlist_position
+                    } else null
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                            .clickable { selectedSection = section }
                     ) {
-                        Text(
-                            text = "Course: ${section.course_id}",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = "Section: ${section.section_id}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "Semester: ${section.semester} ${section.year}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "Classroom: ${section.classroom_id}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "Instructor: ${section.instructor_id}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "Capacity: ${section.capacity}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-
-                        // Display waitlist information
-                        if (section.waitlist_count != null && section.waitlist_count.toIntOrNull() ?: 0 > 0) {
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
                             Text(
-                                text = "Students on Waitlist: ${section.waitlist_count.toIntOrNull() ?: 0}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(top = 4.dp)
+                                text = "Course: ${section.course_id}",
+                                style = MaterialTheme.typography.titleMedium
                             )
-                        }
+                            Text(
+                                text = "Section: ${section.section_id}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Semester: ${section.semester} ${section.year}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Classroom: ${section.classroom_id}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Instructor: ${section.instructor_id}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Capacity: ${section.capacity}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
 
-                        // Only show Drop button if the student is registered for this course
-                        if (isRegistered && user.student_id != null && !user.student_id.isNullOrEmpty()) {
-                            Button(
-                                onClick = {
-                                    if (user.student_id.isNullOrEmpty()) {
-                                        errorMessage =
-                                            "Student ID not available. Please contact support."
-                                        return@Button
-                                    }
+                            // Display waitlist information
+                            if (section.waitlist_count != null && section.waitlist_count.toIntOrNull() ?: 0 > 0) {
+                                Text(
+                                    text = "Students on Waitlist: ${section.waitlist_count.toIntOrNull() ?: 0}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
 
-                                    isLoading = true
-                                    val request = CourseDropRequest(
-                                        student_id = user.student_id,
-                                        course_id = section.course_id,
-                                        section_id = section.section_id,
-                                        semester = section.semester,
-                                        year = section.year
-                                    )
+                            // Only show Drop button if the student is registered for this course
+                            if (isRegistered && user.student_id != null && !user.student_id.isNullOrEmpty()) {
+                                Button(
+                                    onClick = {
+                                        if (user.student_id.isNullOrEmpty()) {
+                                            errorMessage =
+                                                "Student ID not available. Please contact support."
+                                            return@Button
+                                        }
 
-                                    scope.launch {
-                                        try {
-                                            val response = ApiService.api.dropCourse(request)
-                                            if (response.isSuccessful) {
-                                                val result = response.body()
-                                                if (result?.success == true) {
-                                                    dropSuccess = true
-                                                    errorMessage = null
+                                        isLoading = true
+                                        val request = CourseDropRequest(
+                                            student_id = user.student_id,
+                                            course_id = section.course_id,
+                                            section_id = section.section_id,
+                                            semester = section.semester,
+                                            year = section.year
+                                        )
 
-                                                    // Reload sections and registrations after successful drop
-                                                    delay(1000) // Wait for 1 second to show success message
+                                        scope.launch {
+                                            try {
+                                                val response = ApiService.api.dropCourse(request)
+                                                if (response.isSuccessful) {
+                                                    val result = response.body()
+                                                    if (result?.success == true) {
+                                                        dropSuccess = true
+                                                        errorMessage = null
 
-                                                    // Reload sections
-                                                    val sectionsResponse =
-                                                        ApiService.api.getAvailableSections("section")
-                                                    if (sectionsResponse.isSuccessful) {
-                                                        val sectionsResult = sectionsResponse.body()
-                                                        if (sectionsResult?.success == true) {
-                                                            sections = sectionsResult.sections
-                                                        }
-                                                    }
+                                                        // Reload sections and registrations after successful drop
+                                                        delay(1000) // Wait for 1 second to show success message
 
-                                                    // Reload registrations
-                                                    val registrationsResponse =
-                                                        ApiService.api.getRegistrations(
-                                                            mapOf(
-                                                                "action" to "get_registrations",
-                                                                "student_id" to (user.student_id
-                                                                    ?: "")
-                                                            )
-                                                        )
-                                                    if (registrationsResponse.isSuccessful) {
-                                                        val registrationsResult =
-                                                            registrationsResponse.body()
-                                                        if (registrationsResult?.success == true) {
-                                                            registrations =
-                                                                registrationsResult.registrations
-                                                                    ?: emptyList()
-                                                        }
-                                                    }
-
-                                                    // Reload waitlist entries
-                                                    val waitlistResponse =
-                                                        ApiService.api.getWaitlist(
-                                                            mapOf(
-                                                                "action" to "get_waitlist",
-                                                                "student_id" to user.student_id
-                                                            )
-                                                        )
-                                                    if (waitlistResponse.isSuccessful) {
-                                                        val waitlistResult = waitlistResponse.body()
-                                                        if (waitlistResult?.success == true) {
-                                                            waitlistEntries =
-                                                                waitlistResult.waitlist
-                                                                    ?: emptyList()
-                                                        }
-                                                    }
-
-                                                    // Reset success flags after reloading data
-                                                    dropSuccess = false
-                                                    registrationSuccess = false
-                                                    waitlistSuccess = null
-
-                                                    // Reload sections to update waitlist counts
-                                                    try {
+                                                        // Reload sections
                                                         val sectionsResponse =
                                                             ApiService.api.getAvailableSections("section")
                                                         if (sectionsResponse.isSuccessful) {
-                                                            val result = sectionsResponse.body()
-                                                            if (result?.success == true) {
-                                                                sections = result.sections
+                                                            val sectionsResult = sectionsResponse.body()
+                                                            if (sectionsResult?.success == true) {
+                                                                sections = sectionsResult.sections
                                                             }
                                                         }
-                                                    } catch (e: Exception) {
+
+                                                        // Reload registrations
+                                                        val registrationsResponse =
+                                                            ApiService.api.getRegistrations(
+                                                                mapOf(
+                                                                    "action" to "get_registrations",
+                                                                    "student_id" to (user.student_id
+                                                                        ?: "")
+                                                                )
+                                                            )
+                                                        if (registrationsResponse.isSuccessful) {
+                                                            val registrationsResult =
+                                                                registrationsResponse.body()
+                                                            if (registrationsResult?.success == true) {
+                                                                registrations =
+                                                                    registrationsResult.registrations
+                                                                        ?: emptyList()
+                                                            }
+                                                        }
+
+                                                        // Reload waitlist entries
+                                                        val waitlistResponse =
+                                                            ApiService.api.getWaitlist(
+                                                                mapOf(
+                                                                    "action" to "get_waitlist",
+                                                                    "student_id" to user.student_id
+                                                                )
+                                                            )
+                                                        if (waitlistResponse.isSuccessful) {
+                                                            val waitlistResult = waitlistResponse.body()
+                                                            if (waitlistResult?.success == true) {
+                                                                waitlistEntries =
+                                                                    waitlistResult.waitlist
+                                                                        ?: emptyList()
+                                                            }
+                                                        }
+
+                                                        // Reset success flags after reloading data
+                                                        dropSuccess = false
+                                                        registrationSuccess = false
+                                                        waitlistSuccess = null
+
+                                                        // Reload sections to update waitlist counts
+                                                        try {
+                                                            val sectionsResponse =
+                                                                ApiService.api.getAvailableSections("section")
+                                                            if (sectionsResponse.isSuccessful) {
+                                                                val result = sectionsResponse.body()
+                                                                if (result?.success == true) {
+                                                                    sections = result.sections
+                                                                }
+                                                            }
+                                                        } catch (e: Exception) {
+                                                            errorMessage =
+                                                                "Error reloading sections: ${e.message}"
+                                                        }
+                                                    } else {
                                                         errorMessage =
-                                                            "Error reloading sections: ${e.message}"
+                                                            result?.message ?: "Failed to drop course"
                                                     }
                                                 } else {
                                                     errorMessage =
-                                                        result?.message ?: "Failed to drop course"
+                                                        "Failed to drop course: ${response.code()}"
                                                 }
-                                            } else {
-                                                errorMessage =
-                                                    "Failed to drop course: ${response.code()}"
+                                            } catch (e: Exception) {
+                                                errorMessage = "Error: ${e.message}"
+                                            } finally {
+                                                isLoading = false
                                             }
-                                        } catch (e: Exception) {
-                                            errorMessage = "Error: ${e.message}"
-                                        } finally {
-                                            isLoading = false
                                         }
-                                    }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 8.dp)
-                            ) {
-                                Text("Drop Course")
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 8.dp)
+                                ) {
+                                    Text("Drop Course")
+                                }
                             }
                         }
                     }
                 }
-            }
             }
         }
 
@@ -1363,262 +1534,262 @@ fun MyCoursesScreen(
         ) {
             items(registrations) { section ->
                 if (section.year == selectedYear && section.semester == selectedSemester) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                    //.clickable { selectedSection = section }
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                        //.clickable { selectedSection = section }
                     ) {
-                        Text(
-                            text = "Course: ${section.course_id}",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = "Section: ${section.section_id}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "Semester: ${section.semester} ${section.semester}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "Year: ${section.year}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "Grade: ${section.grade}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = "Course: ${section.course_id}",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = "Section: ${section.section_id}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Semester: ${section.semester} ${section.semester}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Year: ${section.year}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Grade: ${section.grade}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
 
 
-                        Button(
-                            onClick = {
-                                if (user.student_id.isNullOrEmpty()) {
-                                    errorMessage =
-                                        "Student ID not available. Please contact support."
-                                    return@Button
-                                }
+                            Button(
+                                onClick = {
+                                    if (user.student_id.isNullOrEmpty()) {
+                                        errorMessage =
+                                            "Student ID not available. Please contact support."
+                                        return@Button
+                                    }
 
 
-                                isLoading = true
-                                val request = CourseDropRequest(
-                                    student_id = user.student_id,
-                                    course_id = section.course_id,
-                                    section_id = section.section_id,
-                                    semester = section.semester,
-                                    year = section.year
-                                )
+                                    isLoading = true
+                                    val request = CourseDropRequest(
+                                        student_id = user.student_id,
+                                        course_id = section.course_id,
+                                        section_id = section.section_id,
+                                        semester = section.semester,
+                                        year = section.year
+                                    )
 
 
-                                scope.launch {
-                                    try {
-                                        val response = ApiService.api.dropCourse(request)
-                                        if (response.isSuccessful) {
-                                            val result = response.body()
-                                            if (result?.success == true) {
-                                                dropSuccess = true
-                                                errorMessage = null
+                                    scope.launch {
+                                        try {
+                                            val response = ApiService.api.dropCourse(request)
+                                            if (response.isSuccessful) {
+                                                val result = response.body()
+                                                if (result?.success == true) {
+                                                    dropSuccess = true
+                                                    errorMessage = null
 
 
-                                                // Reload sections and registrations after successful drop
-                                                delay(1000) // Wait for 1 second to show success message
+                                                    // Reload sections and registrations after successful drop
+                                                    delay(1000) // Wait for 1 second to show success message
 
 
-                                                // Reload registrations
-                                                val registrationsResponse =
-                                                    ApiService.api.getRegistrations(
+                                                    // Reload registrations
+                                                    val registrationsResponse =
+                                                        ApiService.api.getRegistrations(
+                                                            mapOf(
+                                                                "action" to "get_registrations",
+                                                                "student_id" to (user.student_id ?: "")
+                                                            )
+                                                        )
+                                                    if (registrationsResponse.isSuccessful) {
+                                                        val registrationsResult =
+                                                            registrationsResponse.body()
+                                                        if (registrationsResult?.success == true) {
+                                                            registrations =
+                                                                registrationsResult.registrations
+                                                                    ?: emptyList()
+                                                        }
+                                                    }
+                                                    val waitlistResponse = ApiService.api.getWaitlist(
                                                         mapOf(
-                                                            "action" to "get_registrations",
-                                                            "student_id" to (user.student_id ?: "")
+                                                            "action" to "get_waitlist",
+                                                            "student_id" to user.student_id
                                                         )
                                                     )
-                                                if (registrationsResponse.isSuccessful) {
-                                                    val registrationsResult =
-                                                        registrationsResponse.body()
-                                                    if (registrationsResult?.success == true) {
-                                                        registrations =
-                                                            registrationsResult.registrations
-                                                                ?: emptyList()
+                                                    if (waitlistResponse.isSuccessful) {
+                                                        val waitlistResult = waitlistResponse.body()
+                                                        if (waitlistResult?.success == true) {
+                                                            waitlistEntries =
+                                                                waitlistResult.waitlist ?: emptyList()
+                                                        }
                                                     }
-                                                }
-                                                val waitlistResponse = ApiService.api.getWaitlist(
-                                                    mapOf(
-                                                        "action" to "get_waitlist",
-                                                        "student_id" to user.student_id
-                                                    )
-                                                )
-                                                if (waitlistResponse.isSuccessful) {
-                                                    val waitlistResult = waitlistResponse.body()
-                                                    if (waitlistResult?.success == true) {
-                                                        waitlistEntries =
-                                                            waitlistResult.waitlist ?: emptyList()
-                                                    }
-                                                }
 
 
-                                                // Reset success flags after reloading data
-                                                dropSuccess = false
-                                                registrationSuccess = false
-                                                //waitlistSuccess = null
+                                                    // Reset success flags after reloading data
+                                                    dropSuccess = false
+                                                    registrationSuccess = false
+                                                    //waitlistSuccess = null
+                                                } else {
+                                                    errorMessage =
+                                                        result?.message ?: "Failed to drop course"
+                                                }
                                             } else {
                                                 errorMessage =
-                                                    result?.message ?: "Failed to drop course"
+                                                    "Failed to drop course: ${response.code()}"
                                             }
-                                        } else {
-                                            errorMessage =
-                                                "Failed to drop course: ${response.code()}"
+                                        } catch (e: Exception) {
+                                            errorMessage = "Error: ${e.message}"
+                                        } finally {
+                                            isLoading = false
                                         }
-                                    } catch (e: Exception) {
-                                        errorMessage = "Error: ${e.message}"
-                                    } finally {
-                                        isLoading = false
                                     }
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp)
-                        ) {
-                            Text("Drop Course")
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                            ) {
+                                Text("Drop Course")
+                            }
                         }
                     }
                 }
-            }
             }
 
             items(waitlistEntries) { waitlist ->
                 if (waitlist.year == selectedYear && waitlist.semester == selectedSemester) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                    //.clickable { selectedSection = section }
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                        //.clickable { selectedSection = section }
                     ) {
-                        Text (
-                            text = "WaitListed",
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                        Text(
-                            text = "Course: ${waitlist.course_id}",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = "Section: ${waitlist.section_id}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "Semester: ${waitlist.semester} ${waitlist.semester}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "Year: ${waitlist.year}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "Position: ${waitlist.waitlist_position}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Column(
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text (
+                                text = "WaitListed",
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                            Text(
+                                text = "Course: ${waitlist.course_id}",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = "Section: ${waitlist.section_id}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Semester: ${waitlist.semester} ${waitlist.semester}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Year: ${waitlist.year}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Position: ${waitlist.waitlist_position}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
 
 
-                        Button(
-                            onClick = {
-                                if (user.student_id.isNullOrEmpty()) {
-                                    errorMessage =
-                                        "Student ID not available. Please contact support."
-                                    return@Button
-                                }
+                            Button(
+                                onClick = {
+                                    if (user.student_id.isNullOrEmpty()) {
+                                        errorMessage =
+                                            "Student ID not available. Please contact support."
+                                        return@Button
+                                    }
 
 
-                                isLoading = true
-                                val request = WaitlistDropRequest(
-                                    student_id = user.student_id,
-                                    course_id = waitlist.course_id,
-                                    section_id = waitlist.section_id,
-                                    semester = waitlist.semester,
-                                    year = waitlist.year,
-                                    waitlist_position=waitlist.waitlist_position
-                                )
+                                    isLoading = true
+                                    val request = WaitlistDropRequest(
+                                        student_id = user.student_id,
+                                        course_id = waitlist.course_id,
+                                        section_id = waitlist.section_id,
+                                        semester = waitlist.semester,
+                                        year = waitlist.year,
+                                        waitlist_position=waitlist.waitlist_position
+                                    )
 
 
-                                scope.launch {
-                                    try {
-                                        val response = ApiService.api.dropWaitlist(request)
-                                        if (response.isSuccessful) {
-                                            val result = response.body()
-                                            if (result?.success == true) {
-                                                dropSuccess = true
-                                                errorMessage = null
+                                    scope.launch {
+                                        try {
+                                            val response = ApiService.api.dropWaitlist(request)
+                                            if (response.isSuccessful) {
+                                                val result = response.body()
+                                                if (result?.success == true) {
+                                                    dropSuccess = true
+                                                    errorMessage = null
 
 
-                                                // Reload sections and registrations after successful drop
-                                                delay(1000) // Wait for 1 second to show success message
+                                                    // Reload sections and registrations after successful drop
+                                                    delay(1000) // Wait for 1 second to show success message
 
 
-                                                // Reload registrations
-                                                val registrationsResponse =
-                                                    ApiService.api.getRegistrations(
+                                                    // Reload registrations
+                                                    val registrationsResponse =
+                                                        ApiService.api.getRegistrations(
+                                                            mapOf(
+                                                                "action" to "get_registrations",
+                                                                "student_id" to (user.student_id ?: "")
+                                                            )
+                                                        )
+                                                    if (registrationsResponse.isSuccessful) {
+                                                        val registrationsResult =
+                                                            registrationsResponse.body()
+                                                        if (registrationsResult?.success == true) {
+                                                            registrations =
+                                                                registrationsResult.registrations
+                                                                    ?: emptyList()
+                                                        }
+                                                    }
+                                                    val waitlistResponse = ApiService.api.getWaitlist(
                                                         mapOf(
-                                                            "action" to "get_registrations",
-                                                            "student_id" to (user.student_id ?: "")
+                                                            "action" to "get_waitlist",
+                                                            "student_id" to user.student_id
                                                         )
                                                     )
-                                                if (registrationsResponse.isSuccessful) {
-                                                    val registrationsResult =
-                                                        registrationsResponse.body()
-                                                    if (registrationsResult?.success == true) {
-                                                        registrations =
-                                                            registrationsResult.registrations
-                                                                ?: emptyList()
+                                                    if (waitlistResponse.isSuccessful) {
+                                                        val waitlistResult = waitlistResponse.body()
+                                                        if (waitlistResult?.success == true) {
+                                                            waitlistEntries =
+                                                                waitlistResult.waitlist ?: emptyList()
+                                                        }
                                                     }
-                                                }
-                                                val waitlistResponse = ApiService.api.getWaitlist(
-                                                    mapOf(
-                                                        "action" to "get_waitlist",
-                                                        "student_id" to user.student_id
-                                                    )
-                                                )
-                                                if (waitlistResponse.isSuccessful) {
-                                                    val waitlistResult = waitlistResponse.body()
-                                                    if (waitlistResult?.success == true) {
-                                                        waitlistEntries =
-                                                            waitlistResult.waitlist ?: emptyList()
-                                                    }
-                                                }
 
 
-                                                // Reset success flags after reloading data
-                                                dropSuccess = false
-                                                registrationSuccess = false
-                                                //waitlistSuccess = null
+                                                    // Reset success flags after reloading data
+                                                    dropSuccess = false
+                                                    registrationSuccess = false
+                                                    //waitlistSuccess = null
+                                                } else {
+                                                    errorMessage =
+                                                        result?.message ?: "Failed to drop course"
+                                                }
                                             } else {
                                                 errorMessage =
-                                                    result?.message ?: "Failed to drop course"
+                                                    "Failed to drop course: ${response.code()}"
                                             }
-                                        } else {
-                                            errorMessage =
-                                                "Failed to drop course: ${response.code()}"
+                                        } catch (e: Exception) {
+                                            errorMessage = "Error: ${e.message}"
+                                        } finally {
+                                            isLoading = false
                                         }
-                                    } catch (e: Exception) {
-                                        errorMessage = "Error: ${e.message}"
-                                    } finally {
-                                        isLoading = false
                                     }
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp)
-                        ) {
-                            Text("Drop From Waitlist")
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                            ) {
+                                Text("Drop From Waitlist")
+                            }
                         }
                     }
-                }
                 }
             }
         }
