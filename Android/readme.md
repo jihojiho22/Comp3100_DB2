@@ -22,11 +22,16 @@ It manages basic authentication with two user types: **Instructor** and **Studen
    - Place `api.php` into your XAMPP `htdocs` directory.  
      (Path: `xampp/htdocs/api.php`)
    - Create a new MySQL database named **DB2**.
-   - Import `db2.sql` into the **DB2** database.
+   - Import `DB2.sql`, found at `Web/htdocs/DB2.sql`, into the **DB2** database to populate the database.
+
 
 2. **Android App Setup:**
    - Make sure your Android app is configured to communicate with your local server (e.g., `http://localhost/api.php`).
    - Run the app through Android Studio.
+
+3. **Feature Usage**
+- Creating an Account and Login
+    - Minecre
 
 ## Team Members
 
