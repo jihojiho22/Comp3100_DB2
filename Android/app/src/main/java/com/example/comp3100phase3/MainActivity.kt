@@ -47,10 +47,10 @@ class MainActivity : ComponentActivity() {
             COMP3100Phase3Theme {
                 var currentScreen by remember { mutableStateOf("login") }
                 var currentUser by remember { mutableStateOf<User?>(null) }
-                var targetCourseId by remember { mutableStateOf("") }
-                var targetSectionId by remember { mutableStateOf("") }
-                var targetYear by remember { mutableStateOf("") }
-                var targetSemester by remember { mutableStateOf("") }
+                var targetCourseId by remember { mutableStateOf<String?>(null) }
+                var targetSectionId by remember { mutableStateOf<String?>(null) }
+                var targetYear by remember { mutableStateOf<String?>(null) }
+                var targetSemester by remember { mutableStateOf<String?>(null) }
 
                 when (currentScreen) {
                     "login" -> LoginScreen(
@@ -62,10 +62,10 @@ class MainActivity : ComponentActivity() {
                     )
                     "instructorStudents" -> InstructorOutputStudents (
                         onNavigateToDashboard = { currentScreen = "dashboard" },
-                        target_course_id = "",
-                        target_section_id = "",
-                        target_year = "",
-                        target_semester = "",
+                        target_course_id = (targetCourseId ?: ""),
+                        target_section_id = (targetSectionId ?: ""),
+                        target_year = (targetYear ?: ""),
+                        target_semester = (targetSemester ?: ""),
                         user = currentUser ?: User(
                             email = "",
                             type = "student",
