@@ -105,8 +105,6 @@ try {
             $email = $data['email'] ?? '';
             $password = $data['password'] ?? '';
 
-
-
             // Validate inputs
             if (empty($email) || empty($password)) {
                 echo json_encode(['success' => false, 'message' => 'Email and password are required']);
@@ -120,55 +118,30 @@ try {
             if ($stmt->rowCount() > 0) {
                 $account = $stmt->fetch(PDO::FETCH_ASSOC);
                 
-                if (strtolower($account['type']) == 'instructor') {
-                    // Get instructor information
-                    $stmt = $conn->prepare("SELECT i.instructor_id, i.instructor_name, i.title, i.dept_name FROM instructor i WHERE i.email = ?");
-                    $stmt->execute([$email]);
-                    
-                    if ($stmt->rowCount() > 0) {
-                        $instructor = $stmt->fetch(PDO::FETCH_ASSOC);
-                        error_log("Instructor data found: " . json_encode($instructor));
-                        
-                        echo json_encode([
-                            'success' => true,
-                            'message' => 'Login successful',
-                            'instructor_id' => $instructor['instructor_id'],
-                            'email' => $account['email'],
-                            'type' => strtolower($account['type']),
-                            'name' => $instructor['instructor_name'],
-                            'dept_name' => $instructor['dept_name'],
-                            'title' => $instructor['title']
-                        ]);
-                    } else {
-                        error_log("No instructor found for email: " . $email);
-                        echo json_encode(['success' => false, 'message' => 'Instructor record not found']);
-                    }
-                } else {
-                    // Get student information
-                    $stmt = $conn->prepare("SELECT student_id, name, dept_name FROM student WHERE email = ?");
-                    $stmt->execute([$email]);
-                    
-                    $student_id = null;
-                    $name = null;
-                    $dept_name = null;
-                    
-                    if ($stmt->rowCount() > 0) {
-                        $student = $stmt->fetch(PDO::FETCH_ASSOC);
-                        $student_id = $student['student_id'];
-                        $name = $student['name'];
-                        $dept_name = $student['dept_name'];
-                    }
-                    
-                    echo json_encode([
-                        'success' => true, 
-                        'message' => 'Login successful',
-                        'student_id' => $student_id,
-                        'email' => $account['email'],
-                        'type' => $account['type'],
-                        'name' => $name,
-                        'dept_name' => $dept_name
-                    ]);
+                // Get student information
+                $stmt = $conn->prepare("SELECT student_id, name, dept_name FROM student WHERE email = ?");
+                $stmt->execute([$email]);
+                
+                $student_id = null;
+                $name = null;
+                $dept_name = null;
+                
+                if ($stmt->rowCount() > 0) {
+                    $student = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $student_id = $student['student_id'];
+                    $name = $student['name'];
+                    $dept_name = $student['dept_name'];
                 }
+                
+                echo json_encode([
+                    'success' => true, 
+                    'message' => 'Login successful',
+                    'student_id' => $student_id,
+                    'email' => $account['email'],
+                    'type' => $account['type'],
+                    'name' => $name,
+                    'dept_name' => $dept_name
+                ]);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Invalid email or password']);
             }
@@ -188,16 +161,6 @@ try {
             }
 
             try {
-                // Check if section exists
-                $section_sql = "SELECT capacity FROM section WHERE course_id = ? AND section_id = ? AND semester = ? AND year = ?";
-                $section_stmt = $conn->prepare($section_sql);
-                $section_stmt->execute([$course_id, $section_id, $semester, $year]);
-
-                if ($section_stmt->rowCount() == 0) {
-                    echo json_encode(['success' => false, 'message' => 'Section does not exist']);
-                    exit;
-                }
-
                 // Check if already registered
                 $check_sql = "SELECT 1 FROM take WHERE student_id = ? AND course_id = ? AND section_id = ? AND semester = ? AND year = ?";
                 $check_stmt = $conn->prepare($check_sql);
@@ -218,6 +181,16 @@ try {
                     exit;
                 }
 
+                // Check if section exists
+                $section_sql = "SELECT capacity FROM section WHERE course_id = ? AND section_id = ? AND semester = ? AND year = ?";
+                $section_stmt = $conn->prepare($section_sql);
+                $section_stmt->execute([$course_id, $section_id, $semester, $year]);
+
+                if ($section_stmt->rowCount() == 0) {
+                    echo json_encode(['success' => false, 'message' => 'Section does not exist']);
+                    exit;
+                }
+
                 $section = $section_stmt->fetch(PDO::FETCH_ASSOC);
                 $capacity = $section['capacity'];
 
@@ -230,8 +203,8 @@ try {
 
                 // Start transaction
                 $conn->beginTransaction();
-                //if ($enrolled_count >= $capacity || $join_waitlist) {
-                if ($capacity == 0) {
+
+                if ($enrolled_count >= $capacity || $join_waitlist) {
                     // Get current waitlist count for this section
                     $waitlist_count_sql = "SELECT COUNT(*) as waitlist_count FROM waitlist WHERE course_id = ? AND section_id = ? AND semester = ? AND year = ?";
                     $waitlist_count_stmt = $conn->prepare($waitlist_count_sql);
@@ -266,46 +239,6 @@ try {
                 }
                 error_log("Registration error: " . $e->getMessage());
                 echo json_encode(['success' => false, 'message' => 'Registration failed: ' . $e->getMessage()]);
-            }
-        }
-        elseif ($action == 'drop_waitlist') {
-            $student_id = $data['student_id'] ?? '';
-            $course_id = $data['course_id'] ?? '';
-            $section_id = $data['section_id'] ?? '';
-            $semester = $data['semester'] ?? '';
-            $year = $data['year'] ?? '';
-            $position = $data['waitlist_position'] ?? '';
-
-            // Check if the student is on the waitlist
-            $check_sql = "SELECT * FROM waitlist WHERE student_id = ? AND course_id = ? AND section_id = ? AND semester = ? AND year = ?";
-            $check_stmt = $conn->prepare($check_sql);
-            $check_stmt->execute([$student_id, $course_id, $section_id, $semester, $year]);
-            
-            if ($check_stmt->rowCount() == 0) {
-                echo json_encode(['success' => false, 'message' => 'You are not on the waitlist for this course section']);
-                exit;
-            }
-            $conn->beginTransaction();
-            try {
-                // Remove the student from the waitlist
-                $remove_waitlist_sql = "DELETE FROM waitlist WHERE student_id = ? AND course_id = ? AND section_id = ? AND semester = ? AND year = ?";
-                $remove_waitlist_stmt = $conn->prepare($remove_waitlist_sql);
-                $remove_waitlist_stmt->execute([$student_id, $course_id, $section_id, $semester, $year]);
-                
-                // Simple reordering of waitlist positions
-                $reorder_sql = "UPDATE waitlist SET waitlist_position = waitlist_position - 1 WHERE course_id = ? AND section_id = ? AND semester = ? AND year = ? AND waitlist_position > ?";
-                $reorder_stmt = $conn->prepare($reorder_sql);
-                $reorder_stmt->execute([$course_id, $section_id, $semester, $year, $position]);
-
-                $conn->commit();
-                echo json_encode(['success' => true, 'message' => 'Successfully dropped course: ' . $course_id]);
-                
-            } catch (PDOException $e) {
-                if ($conn->inTransaction()) {
-                    $conn->rollBack();
-                }
-                error_log("Drop waitlist error: " . $e->getMessage());
-                echo json_encode(['success' => false, 'message' => 'Failed to drop waitlist: ' . $e->getMessage()]);
             }
         }
         elseif ($action == 'drop') {
@@ -443,37 +376,47 @@ try {
                 echo json_encode(['success' => false, 'message' => 'Failed to get waitlist entries: ' . $e->getMessage()]);
             }
         }
-    } 
-    elseif ($method == 'get_instructor_records') {
-        // Action to get instructor records
-        $instructor_id = $data['instructor_id'] ?? '';
-        if (empty($instructor_id)) {
-            echo json_encode(['success' => false, 'message' => 'Instructor ID is required']);
-            exit;
-        }
-        try {
-            // Get all courses taught by the instructor
-            $sql = "SELECT c.course_id, c.title, c.description, s.section_id, s.semester, s.year 
-                    FROM course c 
-                    JOIN section s ON c.course_id = s.course_id 
-                    WHERE s.instructor_id = ?";
-            $stmt = $conn->prepare($sql);
-            $stmt->execute([$instructor_id]);
-            
-            $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            echo json_encode([
-                'success' => true,
-                'message' => 'Instructor records retrieved successfully',
-                'courses' => $courses
-            ]);
-        } catch (PDOException $e) {
-            error_log("Get instructor records error: " . $e->getMessage());
-            echo json_encode(['success' => false, 'message' => 'Failed to get instructor records: ' . $e->getMessage()]);
-        }
+        // Instructor access to records
+        elseif ($action == 'get_instructor_records') {
+            // Action to get instructor records
+            $instructor_id = $data['instructor_id'] ?? '';
+            if (empty($instructor_id)) {
+                echo json_encode(['success' => false, 'message' => 'Instructor ID is required']);
+                exit;
+            }
+            try {
+                // Get all courses taught by the instructor
+                $sql = "SELECT c.course_id, s.section_id, s.semester, s.year 
+                        FROM course c 
+                        JOIN section s ON c.course_id = s.course_id 
+                        WHERE s.instructor_id = ?;
+                ";
+                $stmt = $conn->prepare($sql);
+                $stmt->execute([$instructor_id]);
+                
+                $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-    }
-
+                // Get instructor information
+                $sql_instructor = "SELECT instructor_id, instructor_name, dept_name FROM instructor WHERE instructor_id = ?";
+                $stmt_instructor = $conn->prepare($sql_instructor);
+                $stmt_instructor->execute([$instructor_id]);
+                $instructor = $stmt_instructor->fetch(PDO::FETCH_ASSOC);
+        
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Instructor records retrieved successfully',
+                    'instructor' => $instructor,
+                    'courses' => $courses
+                ]);
+            } catch (PDOException $e) {
+                error_log("Get instructor records error: " . $e->getMessage());
+                echo json_encode(['success' => false, 'message' => 'Failed to get instructor records: ' . $e->getMessage()]);
+            }
+        }
+         else {
+            echo json_encode(['success' => false, 'message' => 'Invalid request method or action']);
+        }
+    } 
     // Handle GET request to view all accounts in the database
     elseif ($method == 'GET') {
         $table = $_GET['table'] ?? '';
@@ -508,6 +451,7 @@ try {
             echo json_encode(['success' => false, 'message' => 'Invalid table requested']);
         }
     }
+
     
 } catch(PDOException $e) {
     // Catch and log any errors
@@ -515,3 +459,5 @@ try {
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
 ?>
+
+

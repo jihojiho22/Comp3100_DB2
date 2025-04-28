@@ -148,9 +148,12 @@ data class RegistrationsResponse(
 // -------- Instructor Registration Response --------
 data class InstructorRecordsResponse(
     val instructor_id: String,
+    val name: String,
+    val dept_name: String,
+    val title: String,
     val success: Boolean,
     val message: String,
-    val courses: List<CourseRecord> = emptyList()
+    val courses: List<CourseRecord>
 )
 
 data class CourseRecord(

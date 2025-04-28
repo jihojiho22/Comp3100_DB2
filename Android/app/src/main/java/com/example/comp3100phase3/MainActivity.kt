@@ -608,11 +608,13 @@ fun InstructorDashboard(
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    var exampleInstructorId = "12345"
+
     LaunchedEffect(user.instructor_id) {
         try {
             user.instructor_id?.let { id ->
                 val request = mapOf(
-                    "method" to "get_instructor_records",
+                    "action" to "get_instructor_records",
                     "instructor_id" to id
                 )
 
