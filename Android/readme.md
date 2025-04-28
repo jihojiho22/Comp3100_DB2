@@ -6,7 +6,6 @@ If a section is full, students have the option to join the waitlist.
 When a student who is enrolled in the section drops the course, the first student on the waitlist is automatically enrolled.
 Students can also view the courses they are taking and can easily drop a course or remove themselves from a waitlist.
 
-
 How to Run
 
 Place api.php into your XAMPP htdocs directory.
@@ -16,9 +15,10 @@ Create a new database named DB2.
 Run the db2.sql script inside that database.
 Ensure that your Android app can communicate with the API through your local server (e.g., http://localhost/api.php).
 
-Team Member
+Team members
 Nguyen Austin
 Jiho Lee
 Ryan Thomas
+
 
 
