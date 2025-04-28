@@ -145,6 +145,23 @@ data class RegistrationsResponse(
     val registrations: List<Registration>? = null
 )
 
+// -------- Instructor Registration Response --------
+data class InstructorRecordsResponse(
+    val instructor_id: String,
+    val success: Boolean,
+    val message: String,
+    val courses: List<CourseRecord> = emptyList()
+)
+
+data class CourseRecord(
+    val course_id: String,
+    val title: String,
+    val description: String,
+    val section_id: String,
+    val semester: String,
+    val year: String
+)
+
 // -------- API Interface --------
 interface ApiService {
     @POST("api.php")
@@ -174,7 +191,8 @@ interface ApiService {
     @POST("api.php")
     suspend fun cancelWaitlist(@Body request: CancelWaitlistRequest): ApiResponse
 
-
+    @POST("api.php")
+    suspend fun getInstructorRecords(@Body request: Map<String, String>): Response<InstructorRecordsResponse>
     companion object {
         val api: ApiService by lazy {
             Retrofit.Builder()

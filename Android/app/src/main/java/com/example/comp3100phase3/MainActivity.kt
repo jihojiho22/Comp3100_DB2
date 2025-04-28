@@ -158,7 +158,9 @@ fun LoginScreen(
             keyboardActions = KeyboardActions(
                 onDone = {
                     if (email.isNotEmpty() && password.isNotEmpty()) {
+                        onNavigateToDashboard(User(email, "student", null, null, null, null))
                         // Handle login
+
                     }
                 }
             )
@@ -481,7 +483,8 @@ fun DashboardScreen(
     when (user.type?.lowercase()) {
         "instructor" -> InstructorDashboard(
             onNavigateToLogin = onNavigateToLogin,
-            user = user
+            user = user,
+            apiService = ApiService.api
         )
         else -> StudentDashboard(
             onNavigateToLogin = onNavigateToLogin,
@@ -598,8 +601,40 @@ fun StudentDashboard(
 @Composable
 fun InstructorDashboard(
     onNavigateToLogin: () -> Unit,
-    user: User
+    user: User,
+    apiService: ApiService
 ) {
+    var courses by remember { mutableStateOf<List<CourseRecord>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(user.instructor_id) {
+        try {
+            user.instructor_id?.let { id ->
+                val request = mapOf(
+                    "method" to "get_instructor_records",
+                    "instructor_id" to id
+                )
+
+                val response = apiService.getInstructorRecords(request)
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body != null && body.success) {
+                        courses = body.courses
+                    } else {
+                        errorMessage = body?.message ?: "Unknown error occurred"
+                    }
+                } else {
+                    errorMessage = "Network request failed: ${response.code()}"
+                }
+            }
+        } catch (e: Exception) {
+            errorMessage = e.localizedMessage
+        } finally {
+            isLoading = false
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -613,59 +648,61 @@ fun InstructorDashboard(
             modifier = Modifier.padding(bottom = 24.dp)
         )
 
+        // Instructor Info Card
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text(
-                    text = "Instructor Information",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                Text(
-                    text = "Instructor ID: ${user.instructor_id ?: "N/A"}",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Text(
-                    text = "Name: ${user.name ?: "N/A"}",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Text(
-                    text = "Email: ${user.email}",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Text(
-                    text = "Department: ${user.dept_name ?: "N/A"}",
-                    style = MaterialTheme.typography.bodyLarge
-                )
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Instructor Information", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
+                Text("Instructor ID: ${user.instructor_id ?: "N/A"}", style = MaterialTheme.typography.bodyLarge)
+                Text("Name: ${user.name ?: "N/A"}", style = MaterialTheme.typography.bodyLarge)
+                Text("Email: ${user.email}", style = MaterialTheme.typography.bodyLarge)
+                Text("Department: ${user.dept_name ?: "N/A"}", style = MaterialTheme.typography.bodyLarge)
             }
         }
 
+        // Teaching Records Card
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text(
-                    text = "View Teaching Records",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = "View sections you are teaching",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("View Teaching Records", style = MaterialTheme.typography.titleMedium)
+
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.padding(top = 16.dp))
+                } else if (errorMessage != null) {
+                    Text("Error loading courses: $errorMessage", color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 16.dp))
+                } else if (courses.isEmpty()) {
+                    Text("No courses found.", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
+                } else {
+                    courses.forEach { course ->
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "${course.course_id} - ${course.title} (${course.semester} ${course.year})",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = course.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // Logout Button
         Button(
             onClick = onNavigateToLogin,
             modifier = Modifier.fillMaxWidth()
@@ -674,6 +711,7 @@ fun InstructorDashboard(
         }
     }
 }
+
 
 @Composable
 fun CourseRegistrationScreen(
