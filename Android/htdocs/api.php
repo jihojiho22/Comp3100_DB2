@@ -460,18 +460,11 @@ try {
             $year = $data['year'] ?? '';
             $semester = $data['semester'] ?? '';
 
-            if (empty($course_id) || empty($section_id) || empty($year) || empty($semester)) {
+            if (empty($course_id) || empty($course_id) || empty($course_id) || empty($semester)) {
                 echo json_encode(['success' => false, 'message' => 'Student ID is required']);
                 exit;
             }
-        }
-        elseif ($action == 'get_waitlist') {
-            $student_id = $data['student_id'] ?? '';
-            
-            if (empty($student_id)) {
-                echo json_encode(['success' => false, 'message' => 'Student ID is required']);
-                exit;
-            }
+
             try {
 
                 $sql = "SELECT s.student_id, s.name, s.email, t.grade FROM student s, take t WHERE s.student_id = t.student_id AND t.course_id = ? AND t.section_id = ? AND t.year = ? AND t.semester = ?";
@@ -485,10 +478,17 @@ try {
                     'message' => 'Instructor records retrieved successfully',
                     'students' => $students
                 ]);
-
             } catch (PDOException $e) {
-                error_log("Get waitlist error: " . $e->getMessage());
-                echo json_encode(['success' => false, 'message' => 'Failed to get waitlist entries: ' . $e->getMessage()]);
+                error_log("Get instructor students error: " . $e->getMessage());
+                echo json_encode(['success' => false, 'message' => 'Failed to get instructors students: ' . $e->getMessage()]);
+            }
+        }
+        elseif ($action == 'get_waitlist') {
+            $student_id = $data['student_id'] ?? '';
+            
+            if (empty($student_id)) {
+                echo json_encode(['success' => false, 'message' => 'Student ID is required']);
+                exit;
             }
             
             try {
