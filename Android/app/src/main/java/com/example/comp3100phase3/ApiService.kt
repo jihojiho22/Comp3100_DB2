@@ -104,7 +104,13 @@ data class WaitlistDropRequest(
     val year: String,
     val waitlist_position: Int
 )
-
+data class InstructorStudentsRequest(
+    val action: String = "get_instructor_record_students",
+    val course_id: String,
+    val section_id: String,
+    val year: String,
+    val semester: String
+)
 data class CancelWaitlistRequest(
     val action: String = "cancel_waitlist",
     val student_id: String,
@@ -138,6 +144,17 @@ data class WaitlistResponse(
     val message: String? = null,
     val waitlist: List<WaitlistEntry>? = null
 )
+data class InstructStudent (
+    val name: String,
+    val email: String,
+    val student_id: String,
+    val grade:String
+)
+data class InstructorStudentResponse (
+    val success: Boolean,
+    val message: String? = null,
+    val students: List<InstructStudent>? = null
+)
 
 data class RegistrationsResponse(
     val success: Boolean,
@@ -147,19 +164,16 @@ data class RegistrationsResponse(
 
 // -------- Instructor Registration Response --------
 data class InstructorRecordsResponse(
-    val instructor_id: String,
-    val name: String,
-    val dept_name: String,
-    val title: String,
     val success: Boolean,
     val message: String,
-    val courses: List<CourseRecord>
+    val instructor_id: String,
+    val courses: List<CourseRecord> = emptyList()
 )
 
 data class CourseRecord(
     val course_id: String,
-    val title: String,
-    val description: String,
+    //val title: String,
+    //val description: String,
     val section_id: String,
     val semester: String,
     val year: String
@@ -178,21 +192,24 @@ interface ApiService {
 
     @POST("api.php")
     suspend fun registerForCourse(@Body request: CourseRegisterRequest): Response<ApiResponse>
-    
+
     @POST("api.php")
     suspend fun dropCourse(@Body request: CourseDropRequest): Response<ApiResponse>
-    
+
     @POST("api.php")
     suspend fun dropWaitlist(@Body request: WaitlistDropRequest): Response<ApiResponse>
 
     @POST("api.php")
     suspend fun getRegistrations(@Body request: Map<String, String>): Response<RegistrationsResponse>
-    
+
     @POST("api.php")
     suspend fun getWaitlist(@Body request: Map<String, String>): Response<WaitlistResponse>
-    
+
     @POST("api.php")
     suspend fun cancelWaitlist(@Body request: CancelWaitlistRequest): ApiResponse
+
+    @POST("api.php")
+    suspend fun getInstructorRecordsStudents(@Body request: InstructorStudentsRequest): Response<InstructorStudentResponse>
 
     @POST("api.php")
     suspend fun getInstructorRecords(@Body request: Map<String, String>): Response<InstructorRecordsResponse>
